@@ -1,0 +1,470 @@
+[
+  {
+    "id": "scenario_reactor",
+    "name": "⚛️ El Reactor Cuántico (Fuga Nuclear)",
+    "category": "Ciencia & Física Básica",
+    "themeColor": "#00f3ff",
+    "icon": "⚛️",
+    "levels": [
+      {
+        "id": 1,
+        "roomNumber": 1,
+        "title": "Nivel 1: El Reactor Cuántico",
+        "subtitle": "Estabilización de Núcleos y Frecuencias",
+        "description": "El reactor principal está sufriendo una sobrecarga térmica. Para abrir la compuerta magnética, el equipo debe resolver el enigma matemático, sincronizar el teclado cuántico asimétrico e insertar la secuencia de fusibles.",
+        "themeColor": "#00f3ff",
+        "icon": "⚛️",
+        "puzzles": [
+          {
+            "id": "p1_riddle",
+            "type": "RIDDLE",
+            "title": "Adivinanza 1: El Algoritmo Cripto-Aritmético",
+            "instruction": "Analicen las 4 condiciones matemáticas en equipo y seleccionen la frecuencia correcta para generar la Pista Maestra #1 en su Bitácora (Cuidado: cada fallo penaliza -15s):",
+            "riddleText": "Descifren la frecuencia cuántica de 4 dígitos sabiendo que: 1) El primer dígito es el único número primo de una sola cifra que sumado con uno da una potencia de dos. 2) El segundo dígito equivale a la cantidad de lados de un triángulo. 3) El tercer dígito es el número impar de una sola cifra más grande posible. 4) El cuarto dígito representa el número de esquinas de un cuadrado. ¿Cuál es el código?",
+            "options": ["7394", "7934", "5396", "7385"],
+            "targetSolution": "7394",
+            "rewardClue": "📜 PISTA #1 VERIFICADA: Frecuencia de entrada descifrada. Cada agente debe cotejar sus fragmentos clasificados para ingresarla en el teclado."
+          },
+          {
+            "id": "p1_keypad",
+            "type": "ASYNC_KEYPAD",
+            "title": "Teclado de Frecuencias Cuánticas",
+            "instruction": "Combinen los fragmentos numéricos que cada agente tiene asignados para ingresar el código de 4 dígitos en el orden correcto.",
+            "targetSolution": "7394",
+            "playerFragments": {
+              "2_players": [
+                { "slot": 0, "fragment": "Dígitos 1 y 2: [ 7 ] y [ 3 ]", "hint": "Tus dígitos van al inicio del código." },
+                { "slot": 1, "fragment": "Dígitos 3 y 4: [ 9 ] y [ 4 ]", "hint": "Tus dígitos van al final del código." }
+              ],
+              "3_players": [
+                { "slot": 0, "fragment": "Dígitos 1 y 2: [ 7 ] y [ 3 ]", "hint": "Inician la secuencia." },
+                { "slot": 1, "fragment": "Dígito 3: [ 9 ]", "hint": "Va en la tercera posición." },
+                { "slot": 2, "fragment": "Dígito 4: [ 4 ]", "hint": "Es el último dígito." }
+              ],
+              "4_players": [
+                { "slot": 0, "fragment": "Dígito 1: [ 7 ]", "hint": "Posición 1" },
+                { "slot": 1, "fragment": "Dígito 2: [ 3 ]", "hint": "Posición 2" },
+                { "slot": 2, "fragment": "Dígito 3: [ 9 ]", "hint": "Posición 3" },
+                { "slot": 3, "fragment": "Dígito 4: [ 4 ]", "hint": "Posición 4" }
+              ]
+            }
+          },
+          {
+            "id": "p1_cables",
+            "type": "CABLE_SEQUENCE",
+            "title": "Secuencia de Fusibles de Plasma",
+            "instruction": "El agente con el manual técnico debe guiar al equipo indicando qué fusible presionar en cada paso. Completen las 4 casillas y transmitan la orden:",
+            "targetSequence": ["AZUL", "AMARILLO", "ROJO", "VERDE"],
+            "guideText": "MANUAL TÉCNICO: 1º Azul ➔ 2º Amarillo ➔ 3º Rojo ➔ 4º Verde"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "roomNumber": 2,
+        "title": "Nivel 2: Laboratorio de Bio-Seguridad",
+        "subtitle": "Criptogramas y Válvulas de Presión",
+        "description": "Las compuertas del laboratorio están selladas herméticamente. Resuelvan el enigma de la partícula química para descifrar la clave y regulen la presión en equipo.",
+        "themeColor": "#00ff88",
+        "icon": "🧪",
+        "puzzles": [
+          {
+            "id": "p2_riddle",
+            "type": "RIDDLE",
+            "title": "Adivinanza 2: El Enigma de la Partícula Fundamental",
+            "instruction": "Deduzcan la palabra secreta analizando las propiedades físicas y químicas:",
+            "riddleText": "Para purgar los filtros de gas se requiere una palabra de 4 letras: - 1ª Letra: La primera letra del abecedario universal. - 2ª Letra: La consonante que representa la variable de Temperatura en termodinámica. - 3ª Letra: La vocal circular que simboliza el gas vital que respiramos en la atmósfera. - 4ª Letra: La inicial de la propiedad de Masa y Materia. Unidas nombran a la partícula fundamental con núcleo y electrones. ¿Qué palabra es?",
+            "options": ["ATOM", "AMON", "AXON", "ALGO"],
+            "targetSolution": "ATOM",
+            "rewardClue": "📜 PISTA #2 VERIFICADA: Palabra de purga confirmada. Comuniquen las letras y tradúzcanlas en la terminal de bio-seguridad."
+          },
+          {
+            "id": "p2_decoder",
+            "type": "DECODER",
+            "title": "Decodificador de Bio-Seguridad",
+            "instruction": "Un agente posee la señal binaria y otro la tabla de traducción ASCII. Traduzcan y desbloqueen la palabra clave.",
+            "targetSolution": "ATOM",
+            "binaryClue": "01000001 (A) | 01010100 (T) | 01001111 (O) | 01001101 (M)",
+            "guideTable": "TABLA ASCII: [01000001 = A] [01010100 = T] [01001111 = O] [01001101 = M]"
+          },
+          {
+            "id": "p2_valves",
+            "type": "PRESSURE_VALVES",
+            "title": "Calibración de Válvulas a 100 PSI",
+            "instruction": "Ajusten sus deslizadores individuales de presión en tiempo real hasta que la suma total combinada del equipo alcance exactamente 100 PSI.",
+            "targetTotal": 100
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "roomNumber": 3,
+        "title": "Nivel 3: El Núcleo de la IA Madre",
+        "subtitle": "Sobrecarga de Nodos y Clave Maestra de Escape",
+        "description": "La inteligencia artificial central se ha bloqueado en modo autodestrucción. Resuelvan el acertijo final de la jerarquía de Turing y ejecuten la clave maestra en la terminal.",
+        "themeColor": "#ff0055",
+        "icon": "💻",
+        "puzzles": [
+          {
+            "id": "p3_riddle",
+            "type": "RIDDLE",
+            "title": "Adivinanza 3: El Teorema de Anulación de Turing",
+            "instruction": "Deduzcan el orden secuencial de los 4 términos que forman el comando de rescisión:",
+            "riddleText": "La IA exige un comando concatenado en 4 pasos lógicos: 1º El sustantivo que designa un conjunto formal de reglas de comunicación de red. 2º La acción imperativa que revoca un bloqueo de seguridad. 3º El adjetivo que identifica a la especie biológica de los operadores. 4º El año civil en el que nos encontramos. ¿Cuál es la sintaxis con guiones?",
+            "options": [
+              "PROTOCOLO-DESBLOQUEO-HUMANO-2026",
+              "DESBLOQUEO-PROTOCOLO-HUMANO-2026",
+              "PROTOCOLO-HUMANO-DESBLOQUEO-2026",
+              "HUMANO-DESBLOQUEO-PROTOCOLO-2026"
+            ],
+            "targetSolution": "PROTOCOLO-DESBLOQUEO-HUMANO-2026",
+            "rewardClue": "📜 PISTA #3 VERIFICADA: Jerarquía de la clave maestra confirmada. Combinen las partes de cada miembro en la terminal."
+          },
+          {
+            "id": "p3_matrix",
+            "type": "SIMON_MEMORY",
+            "title": "Matriz de Nodos de Seguridad",
+            "instruction": "Activen los 4 cuadrantes en el orden de sobrecarga indicado por los niveles de energía: [Gamma(3) ➔ Alfa(1) ➔ Delta(4) ➔ Beta(2)].",
+            "targetSteps": [2, 0, 3, 1]
+          },
+          {
+            "id": "p3_masterkey",
+            "type": "MASTER_PHRASE",
+            "title": "Terminal Central: Ejecución del Escape",
+            "instruction": "Ingresen la clave maestra final concatenando las palabras asignadas a cada miembro del equipo separadas por guiones.",
+            "targetSolution": "PROTOCOLO-DESBLOQUEO-HUMANO-2026",
+            "playerWords": {
+              "2_players": [
+                { "slot": 0, "word": "PROTOCOLO-DESBLOQUEO", "hint": "Tu fragmento va primero" },
+                { "slot": 1, "word": "HUMANO-2026", "hint": "Tu fragmento va al final" }
+              ],
+              "3_players": [
+                { "slot": 0, "word": "PROTOCOLO", "hint": "Parte 1" },
+                { "slot": 1, "word": "DESBLOQUEO", "hint": "Parte 2" },
+                { "slot": 2, "word": "HUMANO-2026", "hint": "Parte 3" }
+              ],
+              "4_players": [
+                { "slot": 0, "word": "PROTOCOLO", "hint": "Parte 1" },
+                { "slot": 1, "word": "DESBLOQUEO", "hint": "Parte 2" },
+                { "slot": 2, "word": "HUMANO", "hint": "Parte 3" },
+                { "slot": 3, "word": "2026", "hint": "Parte 4" }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scenario_temple",
+    "name": "🏛️ El Templo Perdido y la Tumba del Faraón",
+    "category": "Historia & Misterio Ancestral",
+    "themeColor": "#ffb703",
+    "icon": "🏛️",
+    "levels": [
+      {
+        "id": 1,
+        "roomNumber": 1,
+        "title": "Nivel 1: La Compuerta de la Esfinge",
+        "subtitle": "Jeroglíficos y Gemas Elementales",
+        "description": "Una compuerta de piedra milenaria bloquea el descenso a la tumba. Resuelvan el acertijo ancestral de la esfinge para descifrar la combinación e introduzcan las 4 gemas.",
+        "themeColor": "#ffb703",
+        "icon": "🗿",
+        "puzzles": [
+          {
+            "id": "t1_riddle",
+            "type": "RIDDLE",
+            "title": "Adivinanza 1: El Enigma de los 4 Elementos del Mundo",
+            "instruction": "Resuelvan el acertijo de cultura general en equipo para generar la Pista Maestra en la Bitácora:",
+            "riddleText": "Para abrir la esfinge reúnan los 4 números sagrados: 1) La cantidad de continentes habitados del planeta Tierra. 2) El número de colores primarios en las artes plásticas. 3) El número de patas de una araña o tentáculos de un pulpo. 4) El único número par que es a la vez número primo. ¿Cuál es el código sagrado?",
+            "options": ["5382", "5482", "4382", "5372"],
+            "targetSolution": "5382",
+            "rewardClue": "📜 PISTA #1 VERIFICADA: La combinación de la esfinge ha sido descubierta. Cotejen sus fragmentos clasificados para ingresarla en el panel de piedra."
+          },
+          {
+            "id": "t1_keypad",
+            "type": "ASYNC_KEYPAD",
+            "title": "Panel Jeroglífico de Piedra",
+            "instruction": "Unan los números que cada explorador posee en su información clasificada para introducir la combinación de 4 dígitos en orden.",
+            "targetSolution": "5382",
+            "playerFragments": {
+              "2_players": [
+                { "slot": 0, "fragment": "Dígitos 1 y 2: [ 5 ] y [ 3 ]", "hint": "Tus dígitos van al inicio." },
+                { "slot": 1, "fragment": "Dígitos 3 y 4: [ 8 ] y [ 2 ]", "hint": "Tus dígitos van al final." }
+              ],
+              "3_players": [
+                { "slot": 0, "fragment": "Dígitos 1 y 2: [ 5 ] y [ 3 ]", "hint": "Inician la secuencia." },
+                { "slot": 1, "fragment": "Dígito 3: [ 8 ]", "hint": "Tercera posición." },
+                { "slot": 2, "fragment": "Dígito 4: [ 2 ]", "hint": "Último dígito." }
+              ],
+              "4_players": [
+                { "slot": 0, "fragment": "Dígito 1: [ 5 ]", "hint": "Posición 1" },
+                { "slot": 1, "fragment": "Dígito 2: [ 3 ]", "hint": "Posición 2" },
+                { "slot": 2, "fragment": "Dígito 3: [ 8 ]", "hint": "Posición 3" },
+                { "slot": 3, "fragment": "Dígito 4: [ 2 ]", "hint": "Posición 4" }
+              ]
+            }
+          },
+          {
+            "id": "t1_cables",
+            "type": "CABLE_SEQUENCE",
+            "title": "Secuencia de Gemas del Faraón",
+            "instruction": "El explorador con el pergamino sagrado debe guiar al equipo dictando el orden de las 4 gemas. Completen las casillas y transmitan la secuencia:",
+            "targetSequence": ["AZUL", "AMARILLO", "ROJO", "VERDE"],
+            "guideText": "PERGAMINO SAGRADO: 1º Azul (Zafiro) ➔ 2º Amarillo (Ámbar) ➔ 3º Rojo (Rubí) ➔ 4º Verde (Esmeralda)"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "roomNumber": 2,
+        "title": "Nivel 2: La Cámara del Tesoro Real",
+        "subtitle": "El Papiro Cifrado y Balanza de Pesos",
+        "description": "Descifren la palabra del metal sagrado mediante el traductor de jeroglíficos y equilibren la balanza de arena en 100 kg simultáneos.",
+        "themeColor": "#ffb703",
+        "icon": "🏺",
+        "puzzles": [
+          {
+            "id": "t2_riddle",
+            "type": "RIDDLE",
+            "title": "Adivinanza 2: El Enigma del Metal Divino",
+            "instruction": "Analicen la pista histórica y química para descubrir la palabra secreta de la cámara:",
+            "riddleText": "Soy el metal noble amarillo codiciado desde el antiguo Egipto. En la tabla periódica de elementos mi símbolo químico proviene del latín Aurum y en nuestro idioma mi nombre consta de 3 letras. ¿Cuál es el metal del sarcófago?",
+            "options": ["ORO", "SOL", "REY", "LUZ"],
+            "targetSolution": "ORO",
+            "rewardClue": "📜 PISTA #2 VERIFICADA: Metal sagrado identificado. Un explorador tiene los símbolos y otro la tabla de traducción jeroglífica."
+          },
+          {
+            "id": "t2_decoder",
+            "type": "DECODER",
+            "title": "Traductor de Jeroglíficos",
+            "instruction": "Traduzcan la secuencia de símbolos entre compañeros utilizando la tabla jeroglífica para abrir la cámara de oro.",
+            "targetSolution": "ORO",
+            "binaryClue": "01001111 (O) | 01010010 (R) | 01001111 (O)",
+            "guideTable": "TABLA JEROGLÍFICA: [01001111 = O] [01010010 = R]"
+          },
+          {
+            "id": "t2_valves",
+            "type": "PRESSURE_VALVES",
+            "title": "Balanza de Piedra a 100 Kg",
+            "instruction": "Ajusten los contrapesos de arena individuales simultáneamente hasta que el peso total combinado marque exactamente 100 Kg.",
+            "targetTotal": 100
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "roomNumber": 3,
+        "title": "Nivel 3: El Sello de Anubis",
+        "subtitle": "La Invocación Maestra de Escape",
+        "description": "Rompan la maldición ancestral introduciendo la clave de escape antes de que el templo colapse.",
+        "themeColor": "#ff0055",
+        "icon": "📜",
+        "puzzles": [
+          {
+            "id": "t3_riddle",
+            "type": "RIDDLE",
+            "title": "Adivinanza 3: La Frase de Liberación Dinástica",
+            "instruction": "Deduzcan el orden secuencial de los 4 conceptos sagrados unidos por guiones:",
+            "riddleText": "Para romper el sello de la pirámide pronuncien en orden: 1º El sustantivo del objeto que abre un candado o cerradura. 2º El adjetivo de algo bendito consagrado a los dioses. 3º El nombre del país de las grandes pirámides y el río Nilo. 4º El año contemporáneo en que nos encontramos. ¿Cuál es la invocación?",
+            "options": [
+              "LLAVE-SAGRADA-EGIPTO-2026",
+              "EGIPTO-LLAVE-SAGRADA-2026",
+              "SAGRADA-LLAVE-EGIPTO-2026",
+              "2026-EGIPTO-SAGRADA-LLAVE"
+            ],
+            "targetSolution": "LLAVE-SAGRADA-EGIPTO-2026",
+            "rewardClue": "📜 PISTA #3 VERIFICADA: Invocación sagrada confirmada. Distribuyan sus palabras de poder en el altar central."
+          },
+          {
+            "id": "t3_matrix",
+            "type": "SIMON_MEMORY",
+            "title": "Matriz de Escarabajos Sagrados",
+            "instruction": "Activen los escarabajos luminosos en el orden de los puntos cardinales: [Oeste(3) ➔ Norte(1) ➔ Este(4) ➔ Sur(2)].",
+            "targetSteps": [2, 0, 3, 1]
+          },
+          {
+            "id": "t3_masterkey",
+            "type": "MASTER_PHRASE",
+            "title": "Altar Central: Escape del Templo",
+            "instruction": "Ingresen la invocación maestra final combinando los pergaminos de cada explorador con guiones para abrir la salida secreta.",
+            "targetSolution": "LLAVE-SAGRADA-EGIPTO-2026",
+            "playerWords": {
+              "2_players": [
+                { "slot": 0, "word": "LLAVE-SAGRADA", "hint": "Tu fragmento va primero" },
+                { "slot": 1, "word": "EGIPTO-2026", "hint": "Tu fragmento va al final" }
+              ],
+              "3_players": [
+                { "slot": 0, "word": "LLAVE", "hint": "Parte 1" },
+                { "slot": 1, "word": "SAGRADA", "hint": "Parte 2" },
+                { "slot": 2, "word": "EGIPTO-2026", "hint": "Parte 3" }
+              ],
+              "4_players": [
+                { "slot": 0, "word": "LLAVE", "hint": "Parte 1" },
+                { "slot": 1, "word": "SAGRADA", "hint": "Parte 2" },
+                { "slot": 2, "word": "EGIPTO", "hint": "Parte 3" },
+                { "slot": 3, "word": "2026", "hint": "Parte 4" }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "scenario_space",
+    "name": "🚀 Estación Espacial Internacional a la Deriva",
+    "category": "Astronomía & Navegación Espacial",
+    "themeColor": "#bc13fe",
+    "icon": "🚀",
+    "levels": [
+      {
+        "id": 1,
+        "roomNumber": 1,
+        "title": "Nivel 1: Módulo de Presurización Orbital",
+        "subtitle": "Navegación Astronómica y Cables de Energía",
+        "description": "La estación espacial perdió órbita por el impacto de un asteroide. Descifren el código de telemetría y restauren la energía auxiliar.",
+        "themeColor": "#bc13fe",
+        "icon": "🛰️",
+        "puzzles": [
+          {
+            "id": "s1_riddle",
+            "type": "RIDDLE",
+            "title": "Adivinanza 1: La Telemetría del Sistema Solar",
+            "instruction": "Resuelvan los datos astronómicos en equipo para obtener la frecuencia de navegación:",
+            "riddleText": "Calculen los 4 dígitos de telemetría orbital sabiendo que: 1) El número oficial de planetas en nuestro Sistema Solar. 2) La posición del planeta Tierra contando desde el Sol. 3) El número de satélites naturales que orbitan la Tierra. 4) La cantidad de colores en el espectro del arcoíris. ¿Cuál es el código?",
+            "options": ["8317", "9317", "8327", "8417"],
+            "targetSolution": "8317",
+            "rewardClue": "📜 PISTA #1 VERIFICADA: Clave de telemetría descubierta. Distribuyan los dígitos en el teclado de navegación."
+          },
+          {
+            "id": "s1_keypad",
+            "type": "ASYNC_KEYPAD",
+            "title": "Teclado de Navegación Espacial",
+            "instruction": "Unan los dígitos clasificados de cada astronauta e ingresen las coordenadas en el panel de navegación.",
+            "targetSolution": "8317",
+            "playerFragments": {
+              "2_players": [
+                { "slot": 0, "fragment": "Dígitos 1 y 2: [ 8 ] y [ 3 ]", "hint": "Tus dígitos van al inicio." },
+                { "slot": 1, "fragment": "Dígitos 3 y 4: [ 1 ] y [ 7 ]", "hint": "Tus dígitos van al final." }
+              ],
+              "3_players": [
+                { "slot": 0, "fragment": "Dígitos 1 y 2: [ 8 ] y [ 3 ]", "hint": "Inician la secuencia." },
+                { "slot": 1, "fragment": "Dígito 3: [ 1 ]", "hint": "Tercera posición." },
+                { "slot": 2, "fragment": "Dígito 4: [ 7 ]", "hint": "Último dígito." }
+              ],
+              "4_players": [
+                { "slot": 0, "fragment": "Dígito 1: [ 8 ]", "hint": "Posición 1" },
+                { "slot": 1, "fragment": "Dígito 2: [ 3 ]", "hint": "Posición 2" },
+                { "slot": 2, "fragment": "Dígito 3: [ 1 ]", "hint": "Posición 3" },
+                { "slot": 3, "fragment": "Dígito 4: [ 7 ]", "hint": "Posición 4" }
+              ]
+            }
+          },
+          {
+            "id": "s1_cables",
+            "type": "CABLE_SEQUENCE",
+            "title": "Secuencia de Energía de Paneles Solares",
+            "instruction": "El ingeniero con el manual de vuelo debe dictar la secuencia de los 4 conductores. Seleccionen y transmitan la orden:",
+            "targetSequence": ["AZUL", "AMARILLO", "ROJO", "VERDE"],
+            "guideText": "MANUAL NASA: 1º Azul ➔ 2º Amarillo ➔ 3º Rojo ➔ 4º Verde"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "roomNumber": 2,
+        "title": "Nivel 2: Módulo de Soporte Vital",
+        "subtitle": "Señales de Radio y Válvulas de Oxígeno",
+        "description": "Traduzcan la señal del satélite de referencia y calibren las válvulas de O2 a 100 PSI.",
+        "themeColor": "#00ff88",
+        "icon": "🌌",
+        "puzzles": [
+          {
+            "id": "s2_riddle",
+            "type": "RIDDLE",
+            "title": "Adivinanza 2: El Enigma del Satélite de Guía",
+            "instruction": "Descifren el nombre de la referencia espacial en 4 letras:",
+            "riddleText": "Soy el cuerpo celeste más cercano a la Tierra. Ilumino las noches reflejando la luz del Sol, causo las mareas oceánicas y fui visitada por el Apolo 11 en 1969. ¿Qué palabra de 4 letras abre los tanques de oxígeno?",
+            "options": ["LUNA", "SOLA", "MARS", "NOVA"],
+            "targetSolution": "LUNA",
+            "rewardClue": "📜 PISTA #2 VERIFICADA: Satélite de soporte vital confirmado. Comuniquen los códigos para traducirlos en la consola de radio."
+          },
+          {
+            "id": "s2_decoder",
+            "type": "DECODER",
+            "title": "Decodificador de Radio Espacial",
+            "instruction": "Un astronauta tiene la frecuencia binaria y otro la tabla de decodificación. Traduzcan e ingresen la palabra secreta.",
+            "targetSolution": "LUNA",
+            "binaryClue": "01001100 (L) | 01010101 (U) | 01001110 (N) | 01000001 (A)",
+            "guideTable": "TABLA ESPACIAL: [01001100 = L] [01010101 = U] [01001110 = N] [01000001 = A]"
+          },
+          {
+            "id": "s2_valves",
+            "type": "PRESSURE_VALVES",
+            "title": "Válvulas de Oxígeno a 100 PSI",
+            "instruction": "Regulen el flujo de O2 simultáneo de todos los astronautas hasta alcanzar exactamente 100 PSI combinados.",
+            "targetTotal": 100
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "roomNumber": 3,
+        "title": "Nivel 3: Cápsula de Evacuación",
+        "subtitle": "Secuencia de Ignición y Escape a la Tierra",
+        "description": "Programen la secuencia de propulsión y activen la cápsula de salvamento.",
+        "themeColor": "#ff0055",
+        "icon": "🚀",
+        "puzzles": [
+          {
+            "id": "s3_riddle",
+            "type": "RIDDLE",
+            "title": "Adivinanza 3: El Comando de Retorno Atmosférico",
+            "instruction": "Deduzcan la orden de descenso a la Tierra unida con guiones:",
+            "riddleText": "Para activar la cápsula de escape ingresen en orden: 1º El acto de encender los motores del cohete. 2º La trayectoria curva cerrada alrededor de un planeta. 3º El nombre de nuestro planeta azul hogar. 4º El año civil presente en que vivimos. ¿Cuál es la clave maestra?",
+            "options": [
+              "IGNICION-ORBITAL-TIERRA-2026",
+              "ORBITAL-IGNICION-TIERRA-2026",
+              "TIERRA-IGNICION-ORBITAL-2026",
+              "2026-TIERRA-IGNICION-ORBITAL"
+            ],
+            "targetSolution": "IGNICION-ORBITAL-TIERRA-2026",
+            "rewardClue": "📜 PISTA #3 VERIFICADA: Secuencia de ignición confirmada. Unan sus códigos de propulsión en la consola central."
+          },
+          {
+            "id": "s3_matrix",
+            "type": "SIMON_MEMORY",
+            "title": "Matriz de Propulsores de Emergencia",
+            "instruction": "Enciendan los propulsores en la secuencia de estabilización: [Estribor(3) ➔ Proa(1) ➔ Babor(4) ➔ Popa(2)].",
+            "targetSteps": [2, 0, 3, 1]
+          },
+          {
+            "id": "s3_masterkey",
+            "type": "MASTER_PHRASE",
+            "title": "Consola de Lanzamiento: Retorno a la Tierra",
+            "instruction": "Introduzcan la orden final uniendo las claves de cada astronauta con guiones para desacoplar la cápsula de escape.",
+            "targetSolution": "IGNICION-ORBITAL-TIERRA-2026",
+            "playerWords": {
+              "2_players": [
+                { "slot": 0, "word": "IGNICION-ORBITAL", "hint": "Tu fragmento va primero" },
+                { "slot": 1, "word": "TIERRA-2026", "hint": "Tu fragmento va al final" }
+              ],
+              "3_players": [
+                { "slot": 0, "word": "IGNICION", "hint": "Parte 1" },
+                { "slot": 1, "word": "ORBITAL", "hint": "Parte 2" },
+                { "slot": 2, "word": "TIERRA-2026", "hint": "Parte 3" }
+              ],
+              "4_players": [
+                { "slot": 0, "word": "IGNICION", "hint": "Parte 1" },
+                { "slot": 1, "word": "ORBITAL", "hint": "Parte 2" },
+                { "slot": 2, "word": "TIERRA", "hint": "Parte 3" },
+                { "slot": 3, "word": "2026", "hint": "Parte 4" }
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  }
+]

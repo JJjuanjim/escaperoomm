@@ -1,0 +1,735 @@
+<div class="escape-container">
+  
+  <!-- ========================================================================= -->
+  <!-- MODAL FLOTANTE DE REINCORPORACIÓN / REJOIN -->
+  <!-- ========================================================================= -->
+  <div class="rejoin-modal-overlay" *ngIf="pendingRejoinRequest">
+    <div class="rejoin-modal-card cyber-panel">
+      <span class="modal-icon">🚨</span>
+      <h3>SOLICITUD DE REINCORPORACIÓN</h3>
+      <p class="modal-desc">
+        El agente <strong>{{ pendingRejoinRequest.playerName }}</strong> ({{ pendingRejoinRequest.avatar }}) solicita volver a ingresar a la misión activa.
+      </p>
+      <div class="penalty-warning-box">
+        ⚠️ <strong>Penalización:</strong> Reincorporar al jugador descontará <strong>-10 segundos</strong> al cronómetro global del equipo.
+      </div>
+      <div class="modal-actions-row">
+        <button class="cyber-btn success" (click)="approveRejoin()">
+          ✅ Autorizar e Ingresar (-10s)
+        </button>
+        <button class="cyber-btn alert" (click)="rejectRejoin()">
+          ❌ Rechazar Solicitud
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- OVERLAY DE ESPERA DE AUTORIZACIÓN (PARA EL JUGADOR QUE RECONECTA) -->
+  <div class="rejoin-waiting-overlay" *ngIf="isWaitingRejoinApproval">
+    <div class="waiting-card cyber-panel">
+      <span class="spinner-big">⏳</span>
+      <h3>SOLICITUD ENVIADA AL EQUIPO</h3>
+      <p>{{ waitingRejoinMessage || 'Esperando autorización de los compañeros en la misión (-10s)...' }}</p>
+    </div>
+  </div>
+
+  <!-- MODAL DE RÉCORDS HISTÓRICOS (POSTGRESQL) -->
+  <div class="rejoin-modal-overlay" *ngIf="showRecordsModal">
+    <div class="rejoin-modal-card cyber-panel records-modal">
+      <div class="records-modal-header">
+        <div class="title-with-icon">
+          <span class="modal-icon">🐘</span>
+          <div>
+            <h3>RÉCORDS DE MISIONES (POSTGRESQL)</h3>
+            <p class="db-subtitle">Base de datos: <code>postgres:5432</code> • Tabla: <code>escape_missions</code></p>
+          </div>
+        </div>
+        <button class="close-modal-btn" (click)="closeRecordsModal()">✕</button>
+      </div>
+
+      <div class="records-table-container">
+        <table class="cyber-table" *ngIf="leaderboardRecords.length > 0; else noRecords">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Sala</th>
+              <th>Escenario</th>
+              <th>Puntaje</th>
+              <th>Tiempo</th>
+              <th>Agentes</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let rec of leaderboardRecords; let i = index">
+              <td><strong>#{{ i + 1 }}</strong></td>
+              <td><code>{{ rec.roomCode }}</code></td>
+              <td>{{ rec.scenarioName }}</td>
+              <td class="gold-text">⭐ {{ rec.teamScore }}</td>
+              <td>{{ formatTime(rec.timeRemaining) }}</td>
+              <td>{{ rec.playersNames }}</td>
+              <td class="dim-text">{{ rec.completedAt | date:'short' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #noRecords>
+          <div class="empty-records">
+            <p>🏆 Aún no hay misiones victoriosas registradas en PostgreSQL.</p>
+            <small>¡Completen una misión para inaugurar el salón de la fama en la base de datos!</small>
+          </div>
+        </ng-template>
+      </div>
+
+      <div class="modal-actions-row">
+        <button class="cyber-btn primary" (click)="closeRecordsModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- BARRA SUPERIOR / HUD GLOBAL -->
+  <!-- ========================================================================= -->
+  <header class="top-nav">
+    <div class="brand">
+      <span class="brand-logo">{{ roomState?.scenario?.icon || '🔐' }}</span>
+      <div>
+        <h1 class="brand-title">{{ roomState?.scenario?.name || 'ESCAPE ROOM DIGITAL' }}</h1>
+        <p class="brand-tagline">{{ roomState?.scenario?.category || 'Misión Colaborativa Asimétrica en Tiempo Real' }}</p>
+      </div>
+    </div>
+
+    <!-- Si el equipo está en sala / misión -->
+    <div class="hud-status-bar" *ngIf="roomState">
+      
+      <!-- Cronómetro Global si está jugando -->
+      <div class="timer-badge" *ngIf="roomState.status === 'PLAYING'" [class.warning]="roomState.timeRemaining < 120">
+        <span class="timer-icon">⏳</span>
+        <span class="timer-digits">{{ formatTime(roomState.timeRemaining) }}</span>
+      </div>
+
+      <!-- Puntuación y Pistas -->
+      <div class="score-pill" *ngIf="roomState.status === 'PLAYING'">
+        <span>⭐ {{ roomState.teamScore }} PTS</span>
+      </div>
+
+      <button 
+        class="hint-btn" 
+        *ngIf="roomState.status === 'PLAYING'" 
+        (click)="requestHint()" 
+        [disabled]="roomState.hintsRemaining <= 0"
+        title="Solicitar pista al Comando Central">
+        💡 Pistas ({{ roomState.hintsRemaining }})
+      </button>
+
+      <!-- Código de Sala -->
+      <div class="room-code-tag" (click)="copyRoomLink()" title="Haz clic para copiar el enlace">
+        <span class="code-label">SALA:</span>
+        <strong class="code-val">{{ roomState.code }}</strong>
+        <span class="copy-icon">📋</span>
+        <span class="copy-tooltip" *ngIf="copiedCodeSuccess">¡Copiado!</span>
+      </div>
+
+      <button class="db-records-hud-btn" (click)="openRecordsModal()" title="Consultar Récords en PostgreSQL">
+        🏆 Récords (PostgreSQL)
+      </button>
+
+      <button class="sound-toggle-btn" (click)="toggleSound()" [title]="isSoundEnabled ? 'Silenciar sonidos' : 'Activar sonidos'">
+        {{ isSoundEnabled ? '🔊' : '🔇' }}
+      </button>
+    </div>
+  </header>
+
+  <!-- Banner de Notificación de Errores -->
+  <div class="toast-error" *ngIf="errorMessage">
+    ⚠️ {{ errorMessage }}
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 1. PANTALLA DE BIENVENIDA / CREAR O UNIRSE (Si no está en sala) -->
+  <!-- ========================================================================= -->
+  <main class="welcome-screen" *ngIf="!roomState">
+    <div class="cyber-panel hero-card">
+      <div class="hero-badge">🤝 MULTIJUGADOR COOPERATIVO (2 - 4 AGENTES)</div>
+      <h2 class="hero-title">Sala de Escape Colaborativa</h2>
+      <p class="hero-desc">
+        Un juego de acertijos asimétricos donde <strong>ningún jugador tiene la solución completa</strong>. 
+        Para avanzar, todos los miembros deben comunicarse y combinar sus fragmentos de código e información en tiempo real.
+      </p>
+
+      <!-- Selector de Perfil -->
+      <div class="profile-creator">
+        <label class="input-label">TU IDENTIFICADOR DE AGENTE</label>
+        <div class="name-input-row">
+          <input 
+            type="text" 
+            [(ngModel)]="playerName" 
+            maxlength="16"
+            placeholder="Ej: Agente_Nova" 
+            class="cyber-input text-center"
+          />
+        </div>
+
+        <label class="input-label" style="margin-top: 16px;">ELIGE TU AVATAR</label>
+        <div class="avatar-picker-grid">
+          <button 
+            *ngFor="let av of avatars" 
+            class="avatar-btn" 
+            [class.selected]="selectedAvatar === av"
+            (click)="selectedAvatar = av">
+            {{ av }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Selector de Escenario Previo al Crear -->
+      <div class="scenarios-selector-box" *ngIf="availableScenarios.length > 0">
+        <label class="input-label">ELIGE EL ENTORNO / ESCENARIO DE ESCAPE</label>
+        <div class="scenarios-grid">
+          <div 
+            *ngFor="let sc of availableScenarios" 
+            class="scenario-card"
+            [class.selected]="selectedScenarioId === sc.id"
+            (click)="selectScenario(sc.id)">
+            <span class="sc-icon">{{ sc.icon }}</span>
+            <div class="sc-info">
+              <strong class="sc-name">{{ sc.name }}</strong>
+              <span class="sc-category">{{ sc.category }}</span>
+            </div>
+            <span *ngIf="selectedScenarioId === sc.id" class="sc-active-badge">✓ SELECCIONADO</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Opciones: Crear o Unirse -->
+      <div class="action-cards-grid">
+        <div class="action-card create-card">
+          <h3>🚀 Iniciar Nueva Misión</h3>
+          <p>Crea una sala de escape con el escenario seleccionado e invita a tu equipo.</p>
+          <button class="cyber-btn primary full-width" (click)="createRoom()">
+            Crear Sala de Escape
+          </button>
+        </div>
+
+        <div class="action-card join-card">
+          <h3>🔑 Unirse o Reconectarse</h3>
+          <p>Ingresa el código de 4 caracteres de una sesión ya iniciada (se solicitará reincorporación con -10s).</p>
+          <div class="join-input-group">
+            <input 
+              type="text" 
+              [(ngModel)]="roomCodeInput" 
+              maxlength="4" 
+              placeholder="CÓDIGO (EJ: ESC1)" 
+              class="cyber-input text-center uppercase"
+            />
+            <button class="cyber-btn secondary" (click)="joinRoom()">
+              Unirse
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botón de acceso a base de datos PostgreSQL -->
+      <div class="db-history-card-row" style="margin-top: 20px;">
+        <button class="cyber-btn secondary full-width" (click)="openRecordsModal()">
+          🐘 Ver Salón de la Fama y Récords de Misiones (PostgreSQL)
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 2. PANTALLA DE SALA DE ESPERA (LOBBY) -->
+  <!-- ========================================================================= -->
+  <main class="lobby-screen" *ngIf="roomState && roomState.status === 'LOBBY'">
+    <div class="cyber-panel lobby-panel">
+      
+      <div class="lobby-header">
+        <div>
+          <span class="phase-tag">SALA DE PREPARACIÓN</span>
+          <h2 class="lobby-title">Código de Misión: <span class="highlight-code">{{ roomState.code }}</span></h2>
+        </div>
+        <button class="cyber-btn copy-btn" (click)="copyRoomLink()">
+          📋 Copiar Enlace
+        </button>
+      </div>
+
+      <div class="wifi-share-box">
+        <span class="wifi-badge-icon">📡</span>
+        <div class="wifi-share-info">
+          <strong>¿Jugar en equipo desde teléfonos en la misma red Wi-Fi?</strong>
+          <p>Diles que abran en su navegador: <span class="highlight-url">{{ localHostUrl }}</span> e ingresen el código <span class="highlight-code">{{ roomState.code }}</span></p>
+        </div>
+      </div>
+
+      <!-- Selector de Escenario en Lobby (Editable por el Host) -->
+      <div class="scenarios-selector-box" *ngIf="availableScenarios.length > 0">
+        <h4 class="selector-title">
+          🌍 ENTORNO / ESCENARIO DE LA MISIÓN
+          <span *ngIf="isHost" class="host-editable-tag">(Puedes cambiarlo antes de iniciar)</span>
+        </h4>
+        <div class="scenarios-grid">
+          <div 
+            *ngFor="let sc of availableScenarios" 
+            class="scenario-card"
+            [class.selected]="(roomState.scenario?.id || selectedScenarioId) === sc.id"
+            [class.clickable]="isHost"
+            (click)="isHost ? selectScenario(sc.id) : null">
+            <span class="sc-icon">{{ sc.icon }}</span>
+            <div class="sc-info">
+              <strong class="sc-name">{{ sc.name }}</strong>
+              <span class="sc-category">{{ sc.category }}</span>
+            </div>
+            <span *ngIf="(roomState.scenario?.id || selectedScenarioId) === sc.id" class="sc-active-badge">✓ SELECCIONADO</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Jugadores en Sala -->
+      <div class="players-lobby-grid">
+        <div *ngFor="let p of roomState.players" class="player-slot" [class.is-me]="p.id === mySocketId">
+          <span class="slot-avatar">{{ p.avatar }}</span>
+          <div class="slot-details">
+            <strong class="slot-name">
+              {{ p.name }}
+              <span *ngIf="p.id === mySocketId" class="badge-me">(Tú)</span>
+            </strong>
+            <span class="slot-role-tag">
+              {{ p.isHost ? '👑 Líder de Equipo' : (p.isBot ? '🤖 Bot Cooperativo' : '👨‍🚀 Agente de Campo') }}
+            </span>
+          </div>
+          <button *ngIf="isHost && p.isBot" class="btn-remove-bot" (click)="removeBot(p.id)" title="Remover Bot">
+            ✕
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumen de Sectores de Escape -->
+      <div class="sectors-preview-grid" *ngIf="roomState.currentLevel">
+        <div class="sector-card">
+          <span class="sec-icon">1️⃣</span>
+          <h4>Nivel 1</h4>
+          <small>Adivinanza & Teclado Asimétrico</small>
+        </div>
+        <div class="sector-card">
+          <span class="sec-icon">2️⃣</span>
+          <h4>Nivel 2</h4>
+          <small>Decodificador & Válvulas</small>
+        </div>
+        <div class="sector-card">
+          <span class="sec-icon">3️⃣</span>
+          <h4>Nivel 3</h4>
+          <small>Sobrecarga Simon & Clave Maestra</small>
+        </div>
+      </div>
+
+      <!-- Controles del Anfitrión -->
+      <div class="lobby-host-controls" *ngIf="isHost">
+        <div class="host-button-row">
+          <button class="cyber-btn secondary" (click)="addBot()" [disabled]="roomState.players.length >= 4">
+            🤖 + Agregar Bot Cooperativo
+          </button>
+          <button 
+            class="cyber-btn success start-btn" 
+            [disabled]="roomState.players.length < 2"
+            (click)="startMission()">
+            ▶ Iniciar Misión de Escape ({{ roomState.players.length }}/4 Agentes)
+          </button>
+        </div>
+        <small class="hint-text" *ngIf="roomState.players.length < 2">
+          Se necesitan al menos 2 agentes para la colaboración asimétrica (puedes agregar un bot cooperativo para pruebas).
+        </small>
+      </div>
+
+      <!-- Mensaje para no-hosts -->
+      <div class="lobby-guest-wait" *ngIf="!isHost">
+        <span class="spinner-dot"></span> Esperando a que el líder de equipo inicie la misión...
+      </div>
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 3. PANTALLA PRINCIPAL DE MISIÓN ACTIVA (PLAYING) -->
+  <!-- ========================================================================= -->
+  <main class="mission-screen" *ngIf="roomState && roomState.status === 'PLAYING'">
+    
+    <!-- Encabezado del Nivel / Cámara Actual -->
+    <section class="chamber-banner cyber-panel">
+      <div class="chamber-info">
+        <span class="phase-tag">{{ roomState.currentLevel?.title }}</span>
+        <h2 class="chamber-title">{{ roomState.currentLevel?.subtitle }}</h2>
+        <p class="chamber-desc">{{ roomState.currentLevel?.description }}</p>
+      </div>
+
+      <!-- Barra de Progreso de Niveles -->
+      <div class="levels-progress-tracker">
+        <div class="level-step" [class.done]="roomState.currentLevelIndex > 0" [class.active]="roomState.currentLevelIndex === 0">
+          <span class="step-num">1</span> Nivel 1
+        </div>
+        <div class="level-arrow">➔</div>
+        <div class="level-step" [class.done]="roomState.currentLevelIndex > 1" [class.active]="roomState.currentLevelIndex === 1">
+          <span class="step-num">2</span> Nivel 2
+        </div>
+        <div class="level-arrow">➔</div>
+        <div class="level-step" [class.done]="roomState.currentLevelIndex > 2 || roomState.completedLevels.length >= 3" [class.active]="roomState.currentLevelIndex === 2">
+          <span class="step-num">3</span> Nivel 3
+        </div>
+      </div>
+    </section>
+
+    <div class="mission-two-column-layout">
+      
+      <!-- COLUMNA IZQUIERDA: HUD ASIMÉTRICO & PUZZLE INTERACTIVO -->
+      <div class="puzzle-main-column">
+        
+        <!-- PANEL ASIMÉTRICO (INFORMACIÓN CLASIFICADA ÚNICA PARA ESTE JUGADOR) -->
+        <section class="classified-hud-panel" *ngIf="roomState.myAsymmetricData">
+          <div class="hud-header">
+            <span class="lock-icon">🔒</span>
+            <h4>TU INFORMACIÓN CLASIFICADA EXCLUSIVA</h4>
+            <span class="classified-tag">SOLO TÚ VES ESTO</span>
+          </div>
+
+          <div class="classified-body">
+            <div *ngIf="roomState.myAsymmetricData.fragmentText" class="fragment-display">
+              <span class="frag-role">{{ roomState.myAsymmetricData.roleText }}</span>
+              <h3 class="frag-code">{{ roomState.myAsymmetricData.fragmentText }}</h3>
+              <small class="frag-hint">💡 {{ roomState.myAsymmetricData.hintText }}</small>
+            </div>
+
+            <div *ngIf="roomState.myAsymmetricData.manualText" class="manual-display">
+              <span class="manual-badge">📜 MANUAL ASIGNADO</span>
+              <p class="manual-content">{{ roomState.myAsymmetricData.manualText }}</p>
+            </div>
+
+            <div *ngIf="roomState.myAsymmetricData.signal" class="signal-display">
+              <span class="signal-badge">📡 SEÑAL BINARIA CRUDA:</span>
+              <code class="signal-code">{{ roomState.myAsymmetricData.signal }}</code>
+              <p class="signal-inst">{{ roomState.myAsymmetricData.instruction }}</p>
+            </div>
+
+            <div *ngIf="roomState.myAsymmetricData.table" class="table-display">
+              <span class="table-badge">📊 TABLA DE TRADUCCIÓN:</span>
+              <code class="table-code">{{ roomState.myAsymmetricData.table }}</code>
+              <p class="table-inst">{{ roomState.myAsymmetricData.instruction }}</p>
+            </div>
+
+            <div *ngIf="roomState.myAsymmetricData.word" class="master-word-display">
+              <span class="frag-role">{{ roomState.myAsymmetricData.roleText }}</span>
+              <h3 class="frag-code">{{ roomState.myAsymmetricData.word }}</h3>
+              <small class="frag-hint">💡 {{ roomState.myAsymmetricData.hint }}</small>
+            </div>
+          </div>
+        </section>
+
+        <!-- PANEL DE BITÁCORA DE PISTAS DESBLOQUEADAS POR EL EQUIPO -->
+        <section class="clues-log-panel cyber-panel" *ngIf="roomState.unlockedClues && roomState.unlockedClues.length > 0">
+          <div class="clues-log-header">
+            <span class="clue-log-icon">📜</span>
+            <h4>BITÁCORA DE PISTAS Y ENIGMAS RESUELTOS ({{ roomState.unlockedClues.length }})</h4>
+          </div>
+          <div class="clues-cards-list">
+            <div *ngFor="let clue of roomState.unlockedClues" class="clue-evidence-card">
+              <span class="clue-verified-badge">✅ EVIDENCIA VERIFICADA</span>
+              <p class="clue-text">{{ clue }}</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ENIGMA INTERACTIVO CENTRAL ACTIVO -->
+        <section class="active-puzzle-card cyber-panel">
+          <div class="puzzle-header">
+            <span class="puzzle-badge">ENIGMA ACTIVO</span>
+            <h3>{{ roomState.currentPuzzle?.title }}</h3>
+            <p class="puzzle-inst">{{ roomState.currentPuzzle?.instruction }}</p>
+          </div>
+
+          <!-- 0. PUZZLE: ADIVINANZA / RIDDLE -->
+          <div class="puzzle-widget-riddle" *ngIf="roomState.currentPuzzle?.type === 'RIDDLE'">
+            <div class="riddle-box">
+              <div class="riddle-icon">📜</div>
+              <p class="riddle-text">{{ roomState.currentPuzzle.riddleText }}</p>
+            </div>
+
+            <p class="riddle-action-prompt">Elijan en equipo la respuesta correcta para generar la Pista Maestra:</p>
+            <div class="riddle-options-grid">
+              <button 
+                *ngFor="let opt of roomState.currentPuzzle.options" 
+                class="cyber-btn secondary riddle-opt-btn"
+                (click)="submitRiddleOption(opt)">
+                {{ opt }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 1. PUZZLE: TECLADO NUMÉRICO (ASYNC_KEYPAD) -->
+          <div class="puzzle-widget-keypad" *ngIf="roomState.currentPuzzle?.type === 'ASYNC_KEYPAD'">
+            <div class="keypad-screen">
+              <span class="screen-label">CÓDIGO CUÁNTICO:</span>
+              <div class="keypad-display">{{ keypadInput || '----' }}</div>
+            </div>
+
+            <div class="keypad-grid">
+              <button *ngFor="let num of ['1','2','3','4','5','6','7','8','9']" class="keypad-btn" (click)="pressKeypadDigit(num)">
+                {{ num }}
+              </button>
+              <button class="keypad-btn action clear" (click)="clearKeypad()">CLR</button>
+              <button class="keypad-btn" (click)="pressKeypadDigit('0')">0</button>
+              <button class="keypad-btn action submit" (click)="submitKeypad()">ENTER</button>
+            </div>
+          </div>
+
+          <!-- 2. PUZZLE: CONEXIÓN DE FUSIBLES (CABLE_SEQUENCE) -->
+          <div class="puzzle-widget-cables" *ngIf="roomState.currentPuzzle?.type === 'CABLE_SEQUENCE'">
+            <p class="sub-inst">Seleccionen los 4 fusibles en el orden estricto del manual y transmitan la secuencia:</p>
+
+            <div class="cable-buttons-grid">
+              <button 
+                *ngFor="let c of roomState.myAsymmetricData?.availableButtons || ['AZUL', 'AMARILLO', 'ROJO', 'VERDE']" 
+                class="cable-fuse-btn"
+                [class.fuse-azul]="c === 'AZUL'"
+                [class.fuse-amarillo]="c === 'AMARILLO'"
+                [class.fuse-rojo]="c === 'ROJO'"
+                [class.fuse-verde]="c === 'VERDE'"
+                [disabled]="(roomState.sharedCableSequence || []).length >= 4"
+                (click)="pressCable(c)">
+                ⚡ Fusible {{ c }}
+              </button>
+            </div>
+
+            <div class="current-sequence-display">
+              <div class="seq-info-row">
+                <span class="seq-label">Orden compartido por el equipo ({{ (roomState.sharedCableSequence || []).length }}/4):</span>
+                <button class="cyber-btn secondary small-btn" *ngIf="(roomState.sharedCableSequence || []).length > 0" (click)="resetCables()">
+                  🔄 Borrar Todo
+                </button>
+              </div>
+
+              <div class="sequence-slots-row">
+                <div *ngFor="let step of [0, 1, 2, 3]" class="cable-slot-box" [class.filled]="(roomState.sharedCableSequence || [])[step]">
+                  <span class="slot-number">#{{ step + 1 }}</span>
+                  <div *ngIf="(roomState.sharedCableSequence || [])[step] as colorName" class="slot-color-tag" (click)="removeCableAt(step)" title="Clic para eliminar">
+                    <span class="tag-name">{{ colorName }}</span>
+                    <span class="tag-close">✕</span>
+                  </div>
+                  <span *ngIf="!(roomState.sharedCableSequence || [])[step]" class="slot-empty-text">Esperando...</span>
+                </div>
+              </div>
+
+              <button 
+                class="cyber-btn success submit-cables-btn" 
+                [disabled]="(roomState.sharedCableSequence || []).length !== 4"
+                (click)="submitCableSequence()">
+                ⚡ TRANSMITIR SECUENCIA DE FUSIBLES
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. PUZZLE: DECODIFICADOR (DECODER) -->
+          <div class="puzzle-widget-decoder" *ngIf="roomState.currentPuzzle?.type === 'DECODER'">
+            <div class="decoder-form">
+              <label class="input-label">PALABRA TRADUCIDA:</label>
+              <div class="input-action-row">
+                <input 
+                  type="text" 
+                  [(ngModel)]="decoderInput" 
+                  maxlength="12" 
+                  placeholder="Ej: ATOM" 
+                  class="cyber-input text-center uppercase"
+                  (keyup.enter)="submitDecoder()"
+                />
+                <button class="cyber-btn primary" (click)="submitDecoder()">
+                  Desbloquear
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. PUZZLE: VÁLVULAS DE PRESIÓN SIMULTÁNEAS (PRESSURE_VALVES) -->
+          <div class="puzzle-widget-valves" *ngIf="roomState.currentPuzzle?.type === 'PRESSURE_VALVES'">
+            <div class="pressure-gauge-card">
+              <span class="gauge-label">PRESIÓN TOTAL COMBINADA DEL EQUIPO:</span>
+              <div class="gauge-bar-wrapper">
+                <div class="gauge-bar-fill" [style.width.%]="roomState.totalPressure" [class.perfect]="roomState.totalPressure === 100"></div>
+              </div>
+              <div class="gauge-value" [class.perfect]="roomState.totalPressure === 100">
+                {{ roomState.totalPressure }} / 100 PSI
+              </div>
+            </div>
+
+            <!-- Deslizador Individual -->
+            <div class="my-valve-control">
+              <label class="input-label">TU REGULADOR INDIVIDUAL DE PRESIÓN ({{ myValvePressure }} PSI)</label>
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                [(ngModel)]="myValvePressure" 
+                (input)="onValveSliderChange()" 
+                class="cyber-slider"
+              />
+            </div>
+
+            <!-- Estado de Válvulas de Todos los Jugadores -->
+            <div class="teammates-valves-grid">
+              <div *ngFor="let v of roomState.valves" class="valve-pill" [class.is-mine]="v.playerId === mySocketId">
+                <span class="valve-name">{{ v.playerName }}:</span>
+                <span class="valve-psi">{{ v.pressure }} PSI</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. PUZZLE: SOBRECARGA SIMON MEMORY (SIMON_MEMORY) -->
+          <div class="puzzle-widget-simon" *ngIf="roomState.currentPuzzle?.type === 'SIMON_MEMORY'">
+            <div class="simon-quadrants-grid">
+              <button 
+                *ngFor="let q of [0, 1, 2, 3]; let i = index" 
+                class="simon-quadrant" 
+                [class.q0]="i === 0"
+                [class.q1]="i === 1"
+                [class.q2]="i === 2"
+                [class.q3]="i === 3"
+                (click)="pressSimonQuadrant(i)">
+                Nodo {{ ['Alfa (1)', 'Beta (2)', 'Gamma (3)', 'Delta (4)'][i] }}
+              </button>
+            </div>
+            <p class="simon-steps-count">Secuencia ingresada: {{ simonUserInput.length }} / 4 pasos</p>
+          </div>
+
+          <!-- 6. PUZZLE: TERMINAL DE CLAVE MAESTRA (MASTER_PHRASE) -->
+          <div class="puzzle-widget-master" *ngIf="roomState.currentPuzzle?.type === 'MASTER_PHRASE'">
+            <label class="input-label">CONCATENEN SUS CLAVES SEPARADAS POR GUIONES:</label>
+            <div class="input-action-row">
+              <input 
+                type="text" 
+                [(ngModel)]="masterPhraseInput" 
+                placeholder="EJ: PROTOCOLO-DESBLOQUEO-HUMANO-2026" 
+                class="cyber-input uppercase"
+                (keyup.enter)="submitMasterPhrase()"
+              />
+              <button class="cyber-btn success" (click)="submitMasterPhrase()">
+                EJECUTAR ESCAPE
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- COLUMNA DERECHA: ESTADO DEL EQUIPO & CANAL DE RADIO EN VIVO -->
+      <div class="comms-side-column">
+        
+        <!-- ESTADO DEL EQUIPO -->
+        <div class="cyber-panel team-panel">
+          <h4 class="side-title">👥 EQUIPO EN MISIÓN</h4>
+          <div class="team-players-list">
+            <div *ngFor="let pl of roomState.players" class="team-player-card" [class.is-current]="pl.id === mySocketId">
+              <span class="pl-avatar">{{ pl.avatar }}</span>
+              <div class="pl-info">
+                <strong>{{ pl.name }} <span *ngIf="pl.id === mySocketId">(Tú)</span></strong>
+                <small class="pl-status">🟢 Enlace Conectado</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CANAL DE COMUNICACIÓN EN VIVO (CHAT DE RADIO) -->
+        <div class="cyber-panel comms-panel">
+          <h4 class="side-title">📻 CANAL DE RADIO Y ALERTAS</h4>
+          
+          <div class="chat-messages-container">
+            <div 
+              *ngFor="let m of roomState.chatMessages" 
+              class="chat-bubble" 
+              [class.system-msg]="m.isSystem"
+              [class.mine-msg]="m.senderId === mySocketId">
+              <span class="chat-avatar" *ngIf="!m.isSystem">{{ m.avatar }}</span>
+              <div class="chat-content">
+                <span class="chat-sender" *ngIf="!m.isSystem">{{ m.senderName }}</span>
+                <p class="chat-text">{{ m.text }}</p>
+                <small class="chat-time">{{ m.time }}</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Input de Chat -->
+          <div class="chat-input-bar">
+            <input 
+              type="text" 
+              [(ngModel)]="chatInput" 
+              (keyup.enter)="sendChat()"
+              maxlength="120"
+              placeholder="Transmite datos a tu equipo..." 
+              class="cyber-input"
+            />
+            <button class="cyber-btn primary" (click)="sendChat()">
+              Enviar
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 4. PANTALLA DE VICTORIA FINAL (GAME_WON) -->
+  <!-- ========================================================================= -->
+  <main class="gameover-screen" *ngIf="roomState && roomState.status === 'GAME_WON'">
+    <div class="cyber-panel victory-card">
+      <span class="victory-emoji">🏆</span>
+      <h2 class="victory-title">¡MISIÓN CUMPLIDA: ESCAPE EXITOSO!</h2>
+      <p class="victory-desc">
+        El equipo coordinó todos los códigos asimétricos y neutralizó el sistema de bloqueo con éxito.
+      </p>
+
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-num">{{ roomState.teamScore }}</span>
+          <span class="stat-label">PUNTOS DEL EQUIPO</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num">{{ formatTime(900 - roomState.timeRemaining) }}</span>
+          <span class="stat-label">TIEMPO TOTAL EMPLEADO</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-num">3 / 3</span>
+          <span class="stat-label">CÁMARAS SUPERADAS</span>
+        </div>
+      </div>
+
+      <div class="victory-actions" *ngIf="isHost">
+        <button class="cyber-btn success restart-btn" (click)="restartMission()">
+          🔄 Jugar Otra Misión de Escape
+        </button>
+      </div>
+
+      <p class="guest-wait-text" *ngIf="!isHost">
+        Esperando a que el líder reinicie la misión...
+      </p>
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 5. PANTALLA DE DERROTA (GAME_OVER) -->
+  <!-- ========================================================================= -->
+  <main class="gameover-screen" *ngIf="roomState && roomState.status === 'GAME_OVER'">
+    <div class="cyber-panel defeat-card">
+      <span class="defeat-emoji">💥</span>
+      <h2 class="defeat-title">TIEMPO AGOTADO: MISIÓN FALLIDA</h2>
+      <p class="defeat-desc">
+        Las compuertas se han sellado permanentemente y el tiempo se agotó.
+      </p>
+
+      <div class="victory-actions" *ngIf="isHost">
+        <button class="cyber-btn alert restart-btn" (click)="restartMission()">
+          🔄 Reintentar Misión
+        </button>
+      </div>
+
+      <p class="guest-wait-text" *ngIf="!isHost">
+        Esperando a que el líder reinicie la misión...
+      </p>
+    </div>
+  </main>
+
+</div>

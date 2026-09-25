@@ -1,0 +1,79 @@
+/* ==========================================================================
+   ESCAPE ROOM DIGITAL COLABORATIVO - ESTILOS GLOBALES
+   ========================================================================== */
+:root {
+  --bg-dark: #050711;
+  --bg-panel: rgba(10, 15, 30, 0.85);
+  --bg-card: rgba(18, 26, 48, 0.7);
+  --border-neon: rgba(0, 243, 255, 0.3);
+  --neon-cyan: #00f3ff;
+  --neon-cyan-glow: rgba(0, 243, 255, 0.4);
+  --neon-green: #00ff88;
+  --neon-green-glow: rgba(0, 255, 136, 0.4);
+  --neon-red: #ff0055;
+  --neon-red-glow: rgba(255, 0, 85, 0.4);
+  --neon-amber: #ffb703;
+  --neon-purple: #bc13fe;
+  
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --text-dim: #484f58;
+
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --blur-glass: blur(16px);
+  --shadow-cyber: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Rajdhani', sans-serif;
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 15% 20%, rgba(0, 243, 255, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(188, 19, 254, 0.08) 0%, transparent 40%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .brand-font {
+  font-family: 'Orbitron', sans-serif;
+  letter-spacing: 1px;
+}
+
+code, pre, .mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+button {
+  font-family: 'Rajdhani', sans-serif;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+/* Scrollbar Futurista */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--neon-cyan);
+  border-radius: 3px;
+}

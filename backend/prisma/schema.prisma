@@ -1,0 +1,23 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model EscapeMission {
+  id            Int      @id @default(autoincrement())
+  roomCode      String   @map("room_code")
+  scenarioId    String   @map("scenario_id")
+  scenarioName  String   @map("scenario_name")
+  status        String   // 'GAME_WON' | 'GAME_OVER'
+  teamScore     Int      @map("team_score")
+  timeRemaining Int      @map("time_remaining")
+  playersCount  Int      @map("players_count")
+  playersNames  String   @map("players_names")
+  completedAt   DateTime @default(now()) @map("completed_at")
+
+  @@map("escape_missions")
+}

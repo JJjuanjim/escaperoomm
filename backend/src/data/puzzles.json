@@ -1,0 +1,149 @@
+[
+  {
+    "id": 1,
+    "roomNumber": 1,
+    "title": "Nivel 1: El Reactor Cuántico",
+    "subtitle": "Estabilización de Núcleos y Frecuencias",
+    "description": "El reactor principal está sufriendo una sobrecarga térmica. Para abrir la compuerta magnética, el equipo debe resolver el enigma matemático, sincronizar el teclado cuántico asimétrico e insertar la secuencia de fusibles.",
+    "themeColor": "#00f3ff",
+    "icon": "⚛️",
+    "puzzles": [
+      {
+        "id": "p1_riddle",
+        "type": "RIDDLE",
+        "title": "Adivinanza 1: El Algoritmo Cripto-Aritmético",
+        "instruction": "Analicen las 4 condiciones matemáticas en equipo y seleccionen la frecuencia correcta para generar la Pista Maestra #1 en su Bitácora (Cuidado: cada fallo penaliza -15s):",
+        "riddleText": "Descifren la frecuencia cuántica de 4 dígitos sabiendo que: 1) El primer dígito es el único número primo de una sola cifra que sumado con uno da una potencia de dos. 2) El segundo dígito equivale a la cantidad de lados de un triángulo. 3) El tercer dígito es el número impar de una sola cifra más grande posible. 4) El cuarto dígito representa el número de esquinas de un cuadrado. ¿Cuál es el código?",
+        "options": ["7394", "7934", "5396", "7385"],
+        "targetSolution": "7394",
+        "rewardClue": "📜 PISTA #1 VERIFICADA: Frecuencia de entrada descifrada. Cada agente debe cotejar sus fragmentos clasificados para ingresarla en el teclado."
+      },
+      {
+        "id": "p1_keypad",
+        "type": "ASYNC_KEYPAD",
+        "title": "Teclado de Frecuencias Cuánticas",
+        "instruction": "Combinen los fragmentos numéricos que cada agente tiene asignados para ingresar el código de 4 dígitos en el orden correcto.",
+        "targetSolution": "7394",
+        "playerFragments": {
+          "2_players": [
+            { "slot": 0, "fragment": "Dígitos 1 y 2: [ 7 ] y [ 3 ]", "hint": "Tus dígitos van al inicio del código." },
+            { "slot": 1, "fragment": "Dígitos 3 y 4: [ 9 ] y [ 4 ]", "hint": "Tus dígitos van al final del código." }
+          ],
+          "3_players": [
+            { "slot": 0, "fragment": "Dígitos 1 y 2: [ 7 ] y [ 3 ]", "hint": "Inician la secuencia." },
+            { "slot": 1, "fragment": "Dígito 3: [ 9 ]", "hint": "Va en la tercera posición." },
+            { "slot": 2, "fragment": "Dígito 4: [ 4 ]", "hint": "Es el último dígito." }
+          ],
+          "4_players": [
+            { "slot": 0, "fragment": "Dígito 1: [ 7 ]", "hint": "Posición 1" },
+            { "slot": 1, "fragment": "Dígito 2: [ 3 ]", "hint": "Posición 2" },
+            { "slot": 2, "fragment": "Dígito 3: [ 9 ]", "hint": "Posición 3" },
+            { "slot": 3, "fragment": "Dígito 4: [ 4 ]", "hint": "Posición 4" }
+          ]
+        }
+      },
+      {
+        "id": "p1_cables",
+        "type": "CABLE_SEQUENCE",
+        "title": "Secuencia de Fusibles de Plasma",
+        "instruction": "El agente con el manual técnico debe guiar al equipo indicando qué fusible presionar en cada paso. Completen las 4 casillas y transmitan la orden:",
+        "targetSequence": ["AZUL", "AMARILLO", "ROJO", "VERDE"],
+        "guideText": "MANUAL TÉCNICO: 1º Azul ➔ 2º Amarillo ➔ 3º Rojo ➔ 4º Verde"
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "roomNumber": 2,
+    "title": "Nivel 2: Laboratorio de Bio-Seguridad",
+    "subtitle": "Criptogramas y Válvulas de Presión",
+    "description": "Las compuertas del laboratorio están selladas herméticamente. Resuelvan el enigma de la partícula química para descifrar la clave y regulen la presión en equipo.",
+    "themeColor": "#00ff88",
+    "icon": "🧪",
+    "puzzles": [
+      {
+        "id": "p2_riddle",
+        "type": "RIDDLE",
+        "title": "Adivinanza 2: El Enigma de la Partícula Fundamental",
+        "instruction": "Deduzcan la palabra secreta analizando las propiedades físicas y químicas:",
+        "riddleText": "Para purgar los filtros de gas se requiere una palabra de 4 letras: - 1ª Letra: La primera letra del abecedario universal. - 2ª Letra: La consonante que representa la variable de Temperatura en termodinámica. - 3ª Letra: La vocal circular que simboliza el gas vital que respiramos en la atmósfera. - 4ª Letra: La inicial de la propiedad de Masa y Materia. Unidas nombran a la partícula fundamental con núcleo y electrones. ¿Qué palabra es?",
+        "options": ["ATOM", "AMON", "AXON", "ALGO"],
+        "targetSolution": "ATOM",
+        "rewardClue": "📜 PISTA #2 VERIFICADA: Palabra de purga confirmada. Comuniquen las letras y tradúzcanlas en la terminal de bio-seguridad."
+      },
+      {
+        "id": "p2_decoder",
+        "type": "DECODER",
+        "title": "Decodificador de Bio-Seguridad",
+        "instruction": "Un agente posee la señal binaria y otro la tabla de traducción ASCII. Traduzcan y desbloqueen la palabra clave.",
+        "targetSolution": "ATOM",
+        "binaryClue": "01000001 (A) | 01010100 (T) | 01001111 (O) | 01001101 (M)",
+        "guideTable": "TABLA ASCII: [01000001 = A] [01010100 = T] [01001111 = O] [01001101 = M]"
+      },
+      {
+        "id": "p2_valves",
+        "type": "PRESSURE_VALVES",
+        "title": "Calibración de Válvulas a 100 PSI",
+        "instruction": "Ajusten sus deslizadores individuales de presión en tiempo real hasta que la suma total combinada del equipo alcance exactamente 100 PSI.",
+        "targetTotal": 100
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "roomNumber": 3,
+    "title": "Nivel 3: El Núcleo de la IA Madre",
+    "subtitle": "Sobrecarga de Nodos y Clave Maestra de Escape",
+    "description": "La inteligencia artificial central se ha bloqueado en modo autodestrucción. Resuelvan el acertijo final de la jerarquía de Turing y ejecuten la clave maestra en la terminal.",
+    "themeColor": "#ff0055",
+    "icon": "💻",
+    "puzzles": [
+      {
+        "id": "p3_riddle",
+        "type": "RIDDLE",
+        "title": "Adivinanza 3: El Teorema de Anulación de Turing",
+        "instruction": "Deduzcan el orden secuencial de los 4 términos que forman el comando de rescisión:",
+        "riddleText": "La IA exige un comando concatenado en 4 pasos lógicos: 1º El sustantivo que designa un conjunto formal de reglas de comunicación de red. 2º La acción imperativa que revoca un bloqueo de seguridad. 3º El adjetivo que identifica a la especie biológica de los operadores. 4º El año civil en el que nos encontramos. ¿Cuál es la sintaxis con guiones?",
+        "options": [
+          "PROTOCOLO-DESBLOQUEO-HUMANO-2026",
+          "DESBLOQUEO-PROTOCOLO-HUMANO-2026",
+          "PROTOCOLO-HUMANO-DESBLOQUEO-2026",
+          "HUMANO-DESBLOQUEO-PROTOCOLO-2026"
+        ],
+        "targetSolution": "PROTOCOLO-DESBLOQUEO-HUMANO-2026",
+        "rewardClue": "📜 PISTA #3 VERIFICADA: Jerarquía de la clave maestra confirmada. Combinen las partes de cada miembro en la terminal."
+      },
+      {
+        "id": "p3_matrix",
+        "type": "SIMON_MEMORY",
+        "title": "Matriz de Nodos de Seguridad",
+        "instruction": "Activen los 4 cuadrantes en el orden de sobrecarga indicado por los niveles de energía: [Gamma(3) ➔ Alfa(1) ➔ Delta(4) ➔ Beta(2)].",
+        "targetSteps": [2, 0, 3, 1]
+      },
+      {
+        "id": "p3_masterkey",
+        "type": "MASTER_PHRASE",
+        "title": "Terminal Central: Ejecución del Escape",
+        "instruction": "Ingresen la clave maestra final concatenando las palabras asignadas a cada miembro del equipo separadas por guiones.",
+        "targetSolution": "PROTOCOLO-DESBLOQUEO-HUMANO-2026",
+        "playerWords": {
+          "2_players": [
+            { "slot": 0, "word": "PROTOCOLO-DESBLOQUEO", "hint": "Tu fragmento va primero" },
+            { "slot": 1, "word": "HUMANO-2026", "hint": "Tu fragmento va al final" }
+          ],
+          "3_players": [
+            { "slot": 0, "word": "PROTOCOLO", "hint": "Parte 1" },
+            { "slot": 1, "word": "DESBLOQUEO", "hint": "Parte 2" },
+            { "slot": 2, "word": "HUMANO-2026", "hint": "Parte 3" }
+          ],
+          "4_players": [
+            { "slot": 0, "word": "PROTOCOLO", "hint": "Parte 1" },
+            { "slot": 1, "word": "DESBLOQUEO", "hint": "Parte 2" },
+            { "slot": 2, "word": "HUMANO", "hint": "Parte 3" },
+            { "slot": 3, "word": "2026", "hint": "Parte 4" }
+          ]
+        }
+      }
+    ]
+  }
+]
