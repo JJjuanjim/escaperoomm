@@ -29,8 +29,14 @@ Thumbs.db
 *.sln
 *.sw?
 
-# Documentos Word y scripts auxiliares
+# Documentos Word, reportes y scripts auxiliares
 *.docx
+*.doc
+*.pdf
+*.pptx
+*.ppt
+*NORMAS_APA*
 generar_word_apa.js
+
 
 

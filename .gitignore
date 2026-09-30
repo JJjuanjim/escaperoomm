@@ -36,7 +36,12 @@ Thumbs.db
 *.sln
 *.sw?
 
-# Documentos Word
+# Documentos Word y Reportes
 *.docx
 *.doc
+*.pdf
+*.pptx
+*.ppt
+*NORMAS_APA*
+
 
