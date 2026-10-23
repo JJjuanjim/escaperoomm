@@ -18,10 +18,33 @@ Write-Host "[2/2] Iniciando Servidor Frontend (Angular en http://localhost:4200)
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$projectDir\frontend'; Write-Host '🚀 Frontend Angular compilando en http://localhost:4200' -ForegroundColor Green; npm start"
 
 Write-Host ""
-Write-Host "Servicios iniciados en ventanas independientes." -ForegroundColor Green
-Write-Host "Esperando compilación y abriendo el navegador (10 segundos)..." -ForegroundColor Cyan
-Start-Sleep -Seconds 10
-Start-Process "http://localhost:4200"
+Write-Host "Servicios iniciados en segundo plano." -ForegroundColor Green
+Write-Host "Compilando Angular y conectando a PostgreSQL (esto puede tardar 20-30 segundos la primera vez)..." -ForegroundColor Cyan
+
+$ready = $false
+$maxSeconds = 60
+$elapsed = 0
+
+while (-not $ready -and $elapsed -lt $maxSeconds) {
+    Start-Sleep -Seconds 2
+    $elapsed += 2
+    try {
+        $res = Invoke-WebRequest -Uri "http://localhost:4200" -UseBasicParsing -TimeoutSec 2 -ErrorAction SilentlyContinue
+        if ($res.StatusCode -eq 200) {
+            $ready = $true
+        }
+    } catch {}
+    Write-Host "   Esperando compilación de Angular... ($elapsed s)" -ForegroundColor Gray
+}
+
+if ($ready) {
+    Write-Host "¡Todo listo! Abriendo navegador..." -ForegroundColor Green
+    Start-Process "http://localhost:4200"
+} else {
+    Write-Host "El servidor tardó más de lo esperado. Abriendo de todas formas..." -ForegroundColor Yellow
+    Start-Process "http://localhost:4200"
+}
 
 Write-Host ""
 Write-Host "Para detener el proyecto ejecuta: .\detener_proyecto.ps1" -ForegroundColor Gray
+

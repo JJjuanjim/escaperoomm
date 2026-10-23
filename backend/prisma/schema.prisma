@@ -12,7 +12,7 @@ model EscapeMission {
   roomCode      String   @map("room_code")
   scenarioId    String   @map("scenario_id")
   scenarioName  String   @map("scenario_name")
-  status        String   // 'GAME_WON' | 'GAME_OVER'
+  status        String
   teamScore     Int      @map("team_score")
   timeRemaining Int      @map("time_remaining")
   playersCount  Int      @map("players_count")
@@ -20,4 +20,23 @@ model EscapeMission {
   completedAt   DateTime @default(now()) @map("completed_at")
 
   @@map("escape_missions")
+}
+
+model User {
+  id                  Int       @id @default(autoincrement())
+  email               String    @unique
+  password            String
+  codename            String
+  avatar              String    @default("👨‍🚀")
+  rank                String    @default("Recluta")
+  isVerified          Boolean   @default(false) @map("is_verified")
+  verificationCode    String?   @map("verification_code")
+  verificationExpires DateTime? @map("verification_expires")
+  xpPoints            Int       @default(100) @map("xp_points")
+  missionsPlayed      Int       @default(0) @map("missions_played")
+  missionsWon         Int       @default(0) @map("missions_won")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
 }

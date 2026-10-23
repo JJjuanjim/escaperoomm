@@ -1,5 +1,215 @@
-<div class="escape-container">
+<div class="escape-container" [class]="getScenarioThemeClass()">
   
+  <!-- ========================================================================= -->
+  <!-- BANNER FLOTANTE DE RECONEXIÓN PERSISTENTE (F5) -->
+  <!-- ========================================================================= -->
+  <div class="reconnect-toast-banner" *ngIf="isAutoReconnecting">
+    <div class="reconnect-spinner"></div>
+    <div class="reconnect-text">
+      <strong>SISTEMA DE RECUPERACIÓN DE SESIÓN ACTIVO</strong>
+      <span>{{ reconnectStatusMessage || 'Restableciendo enlace cuántico con la sala...' }}</span>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DE LOGIN / REGISTRO / CONFIRMACIÓN POR CORREO (GMAIL) -->
+  <!-- ========================================================================= -->
+  <div class="rejoin-modal-overlay" *ngIf="showLoginModal">
+    <div class="rejoin-modal-card cyber-panel login-card">
+      
+      <div class="records-modal-header">
+        <div class="title-with-icon">
+          <span class="modal-icon">🪪</span>
+          <div>
+            <h3>SISTEMA DE IDENTIFICACIÓN DE AGENTE</h3>
+            <p class="db-subtitle">Autenticación segura vinculada a correo Gmail • PostgreSQL 18.3</p>
+          </div>
+        </div>
+        <button class="close-modal-btn" (click)="closeLoginModal()">✕</button>
+      </div>
+
+      <!-- Selector de Pestañas: Iniciar Sesión / Crear Cuenta / Verificar -->
+      <div class="auth-tabs-bar">
+        <button 
+          class="auth-tab-btn" 
+          [class.active]="authTab === 'LOGIN'" 
+          (click)="switchAuthTab('LOGIN')">
+          🔑 Iniciar Sesión
+        </button>
+        <button 
+          class="auth-tab-btn" 
+          [class.active]="authTab === 'REGISTER'" 
+          (click)="switchAuthTab('REGISTER')">
+          📝 Crear Cuenta (Gmail)
+        </button>
+        <button 
+          class="auth-tab-btn" 
+          *ngIf="authEmail"
+          [class.active]="authTab === 'VERIFY'" 
+          (click)="switchAuthTab('VERIFY')">
+          📧 Confirmar Código
+        </button>
+      </div>
+
+      <!-- 1. PESTAÑA: INICIAR SESIÓN -->
+      <div class="login-form-body" *ngIf="authTab === 'LOGIN'">
+        <div class="login-field-group">
+          <label class="input-label">CORREO ELECTRÓNICO (GMAIL)</label>
+          <input 
+            type="email" 
+            [(ngModel)]="authEmail" 
+            placeholder="agente@gmail.com" 
+            class="cyber-input"
+          />
+        </div>
+
+        <div class="login-field-group">
+          <label class="input-label">CONTRASEÑA DE SEGURIDAD</label>
+          <input 
+            type="password" 
+            [(ngModel)]="authPassword" 
+            placeholder="••••••••" 
+            class="cyber-input"
+            (keyup.enter)="submitLoginWithEmail()"
+          />
+        </div>
+
+        <div class="modal-actions-row" style="margin-top: 10px;">
+          <button class="cyber-btn primary full-width" [disabled]="isAuthLoading" (click)="submitLoginWithEmail()">
+            {{ isAuthLoading ? '⌛ Validando Credenciales...' : '🔓 Iniciar Sesión de Agente' }}
+          </button>
+        </div>
+
+        <div class="auth-switch-prompt">
+          <span>¿No tienes cuenta de agente aún?</span>
+          <button class="link-switch-btn" (click)="switchAuthTab('REGISTER')">Regístrate gratis con tu Gmail ➔</button>
+        </div>
+      </div>
+
+      <!-- 2. PESTAÑA: CREAR CUENTA (REGISTRO CON GMAIL) -->
+      <div class="login-form-body" *ngIf="authTab === 'REGISTER'">
+        <div class="login-field-group">
+          <label class="input-label">CORREO ELECTRÓNICO (GMAIL)</label>
+          <input 
+            type="email" 
+            [(ngModel)]="authEmail" 
+            placeholder="tu.correo@gmail.com" 
+            class="cyber-input"
+          />
+          <small class="field-hint">Te enviaremos una notificación con un código de 6 dígitos para validar la creación de tu cuenta.</small>
+        </div>
+
+        <div class="login-row-columns">
+          <div class="login-field-group">
+            <label class="input-label">CONTRASEÑA</label>
+            <input 
+              type="password" 
+              [(ngModel)]="authPassword" 
+              placeholder="Mínimo 4 caracteres" 
+              class="cyber-input"
+            />
+          </div>
+
+          <div class="login-field-group">
+            <label class="input-label">NOMBRE EN CLAVE (CODENAME)</label>
+            <input 
+              type="text" 
+              [(ngModel)]="authCodename" 
+              maxlength="16" 
+              placeholder="Ej: Agente_Nova" 
+              class="cyber-input"
+            />
+          </div>
+        </div>
+
+        <div class="login-row-columns">
+          <div class="login-field-group">
+            <label class="input-label">RANGO DE OPERACIONES</label>
+            <select [(ngModel)]="authRank" class="cyber-select">
+              <option value="Recluta">🔰 Recluta</option>
+              <option value="Especialista">🎖️ Especialista</option>
+              <option value="Táctico">⭐ Táctico</option>
+              <option value="Comandante">👑 Comandante</option>
+            </select>
+          </div>
+
+          <div class="login-field-group">
+            <label class="input-label">AVATAR OPERATIVO</label>
+            <div class="avatar-mini-picker">
+              <button 
+                *ngFor="let av of avatars.slice(0, 5)" 
+                class="avatar-btn small" 
+                [class.selected]="authAvatar === av"
+                (click)="authAvatar = av">
+                {{ av }}
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="xp-bonus-preview" *ngIf="challengesBonusXp > 0">
+          <span class="bonus-icon">⚡</span>
+          <span>¡Tienes <strong>+{{ challengesBonusXp }} XP</strong> acumulados en los retos que se abonarán a tu nueva cuenta!</span>
+        </div>
+
+        <div class="modal-actions-row">
+          <button class="cyber-btn primary full-width" [disabled]="isAuthLoading" (click)="submitRegisterWithEmail()">
+            {{ isAuthLoading ? '⌛ Generando Notificación...' : '📨 Crear Cuenta y Enviar Código a Gmail' }}
+          </button>
+        </div>
+
+        <div class="auth-switch-prompt">
+          <span>¿Ya tienes una cuenta registrada?</span>
+          <button class="link-switch-btn" (click)="switchAuthTab('LOGIN')">Inicia sesión con tu correo ➔</button>
+        </div>
+      </div>
+
+      <!-- 3. PESTAÑA: CONFIRMAR CÓDIGO DE 6 DÍGITOS -->
+      <div class="login-form-body" *ngIf="authTab === 'VERIFY'">
+        <div class="verification-notice-card">
+          <span class="v-icon">📬</span>
+          <div class="v-text">
+            <strong>NOTIFICACIÓN DE VERIFICACIÓN ENVIADA</strong>
+            <p>Hemos despachado una clave cuántica de 6 dígitos a <span class="highlight-code">{{ authEmail }}</span>. Revisa tu bandeja de entrada en Gmail.</p>
+          </div>
+        </div>
+
+        <!-- Indicador de código de desarrollo (cuando no hay SMTP configurado en .env) -->
+        <div class="dev-code-banner" *ngIf="authDevCode">
+          <span class="dev-tag">MODO PRUEBA ACTIVO (SMTP no configurado en .env)</span>
+          <p>Tu código de confirmación es: <strong class="dev-code-digits">{{ authDevCode }}</strong></p>
+          <small>Puedes ingresar este código de 6 dígitos directamente para confirmar.</small>
+        </div>
+
+        <div class="login-field-group">
+          <label class="input-label text-center">INGRESA EL CÓDIGO DE 6 DÍGITOS</label>
+          <input 
+            type="text" 
+            [(ngModel)]="authVerificationCode" 
+            maxlength="6" 
+            placeholder="123456" 
+            class="cyber-input code-digits-input"
+            (keyup.enter)="submitVerifyCode()"
+          />
+        </div>
+
+        <div class="modal-actions-row">
+          <button class="cyber-btn success full-width" [disabled]="isAuthLoading" (click)="submitVerifyCode()">
+            {{ isAuthLoading ? '⌛ Validando...' : '✅ Confirmar Código y Activar Agente' }}
+          </button>
+        </div>
+
+        <div class="resend-row">
+          <button class="link-switch-btn" (click)="resendVerificationCode()">
+            🔄 ¿No recibiste el correo? Reenviar código
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ========================================================================= -->
   <!-- MODAL FLOTANTE DE REINCORPORACIÓN / REJOIN -->
   <!-- ========================================================================= -->
@@ -38,25 +248,66 @@
     <div class="rejoin-modal-card cyber-panel records-modal">
       <div class="records-modal-header">
         <div class="title-with-icon">
-          <span class="modal-icon">🐘</span>
+          <span class="modal-icon">🏆</span>
           <div>
-            <h3>RÉCORDS DE MISIONES (POSTGRESQL)</h3>
-            <p class="db-subtitle">Base de datos: <code>postgres:5432</code> • Tabla: <code>escape_missions</code></p>
+            <h3>SALÓN DE LA FAMA Y PUNTEOS (POSTGRESQL)</h3>
+            <p class="db-subtitle">Base de datos: <code>postgres:5432</code> • Punteos individuales por partida y ranking de usuarios</p>
           </div>
         </div>
         <button class="close-modal-btn" (click)="closeRecordsModal()">✕</button>
       </div>
 
+      <!-- Pestañas del Salón de la Fama -->
+      <div class="records-tabs-bar">
+        <button class="tab-btn" [class.active]="recordsModalTab === 'USERS'" (click)="setRecordsModalTab('USERS')">
+          👤 Ranking de Usuarios (Puntos Totales)
+        </button>
+        <button class="tab-btn" [class.active]="recordsModalTab === 'MATCHES'" (click)="setRecordsModalTab('MATCHES')">
+          🎮 Historial de Partidas y Punteos Ganados
+        </button>
+      </div>
+
       <div class="records-table-container">
-        <table class="cyber-table" *ngIf="leaderboardRecords.length > 0; else noRecords">
+        <!-- VISTA 1: RANKING INDIVIDUAL DE USUARIOS -->
+        <table class="cyber-table" *ngIf="recordsModalTab === 'USERS' && userLeaderboardRecords.length > 0">
+          <thead>
+            <tr>
+              <th>Rango</th>
+              <th>Agente</th>
+              <th>Rango Táctico</th>
+              <th>Puntos Acumulados</th>
+              <th>Victorias</th>
+              <th>Misiones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of userLeaderboardRecords; let i = index" [class.gold-row]="i === 0">
+              <td><strong>{{ i === 0 ? '🥇 1º' : (i === 1 ? '🥈 2º' : (i === 2 ? '🥉 3º' : '#' + (i + 1))) }}</strong></td>
+              <td>
+                <span class="agent-avatar-small">{{ u.avatar }}</span>
+                <strong>{{ u.codename }}</strong>
+              </td>
+              <td><span class="badge-role">{{ u.rank }}</span></td>
+              <td class="gold-text">⭐ {{ u.xpPoints }} PTS</td>
+              <td class="green-text">🏆 {{ u.missionsWon }}</td>
+              <td>{{ u.missionsPlayed }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="empty-records" *ngIf="recordsModalTab === 'USERS' && userLeaderboardRecords.length === 0">
+          <p>👤 No hay usuarios registrados aún en PostgreSQL.</p>
+          <small>Crea tu usuario o inicia sesión para registrar tus punteos en el ranking.</small>
+        </div>
+        <table class="cyber-table" *ngIf="recordsModalTab === 'MATCHES' && leaderboardRecords.length > 0">
           <thead>
             <tr>
               <th>#</th>
               <th>Sala</th>
               <th>Escenario</th>
-              <th>Puntaje</th>
+              <th>Puntos Totales</th>
               <th>Tiempo</th>
-              <th>Agentes</th>
+              <th>Usuarios y Punteos Ganados</th>
               <th>Fecha</th>
             </tr>
           </thead>
@@ -87,51 +338,248 @@
   </div>
 
   <!-- ========================================================================= -->
-  <!-- BARRA SUPERIOR / HUD GLOBAL -->
+  <!-- BARRA SUPERIOR / TOP NAVIGATION HUD -->
   <!-- ========================================================================= -->
-  <header class="top-nav">
-    <div class="brand">
+  <!-- ========================================================================= -->
+  <!-- 0. PANTALLA EXCLUSIVA DE CONTROL DE ACCESO / LOGIN FIRST -->
+  <!-- ========================================================================= -->
+  <main class="login-gate-screen" *ngIf="!agentProfile && !roomState">
+    <div class="login-gate-card cyber-panel">
+      
+      <div class="login-gate-header">
+        <div class="gate-logo-ring">
+          <span class="gate-logo-icon">🛡️</span>
+        </div>
+        <span class="gate-badge">CONTROL DE ACCESO DE SEGURIDAD</span>
+        <h2 class="gate-title">ESCAPE PROTOCOL 2026</h2>
+        <p class="gate-subtitle">Identifícate con tu cuenta de Agente para acceder a las operaciones tácticas y salas multijugador.</p>
+      </div>
+
+      <!-- Selector de Pestañas: Iniciar Sesión / Registrar Agente / Confirmar Código -->
+      <div class="auth-tabs-bar">
+        <button 
+          class="auth-tab-btn" 
+          [class.active]="authTab === 'LOGIN'" 
+          (click)="switchAuthTab('LOGIN')">
+          🔑 Iniciar Sesión
+        </button>
+        <button 
+          class="auth-tab-btn" 
+          [class.active]="authTab === 'REGISTER'" 
+          (click)="switchAuthTab('REGISTER')">
+          📝 Registrarse (Gmail)
+        </button>
+        <button 
+          class="auth-tab-btn" 
+          *ngIf="authEmail"
+          [class.active]="authTab === 'VERIFY'" 
+          (click)="switchAuthTab('VERIFY')">
+          📧 Confirmar Código
+        </button>
+      </div>
+
+      <!-- Formulario 1: Iniciar Sesión -->
+      <div class="login-form-body" *ngIf="authTab === 'LOGIN'">
+        <div class="login-field-group">
+          <label class="input-label">CORREO ELECTRÓNICO (GMAIL)</label>
+          <input 
+            type="email" 
+            [(ngModel)]="authEmail" 
+            placeholder="agente@gmail.com" 
+            class="cyber-input"
+          />
+        </div>
+
+        <div class="login-field-group">
+          <label class="input-label">CONTRASEÑA DE SEGURIDAD</label>
+          <input 
+            type="password" 
+            [(ngModel)]="authPassword" 
+            placeholder="••••••••" 
+            class="cyber-input"
+            (keyup.enter)="submitLoginWithEmail()"
+          />
+        </div>
+
+        <button class="cyber-btn primary full-width" [disabled]="isAuthLoading" (click)="submitLoginWithEmail()">
+          {{ isAuthLoading ? '⌛ Validando Credenciales...' : '🔓 Ingresar al Centro de Mando' }}
+        </button>
+      </div>
+
+      <!-- Formulario 2: Crear Cuenta -->
+      <div class="login-form-body" *ngIf="authTab === 'REGISTER'">
+        <div class="login-field-group">
+          <label class="input-label">CORREO ELECTRÓNICO (GMAIL)</label>
+          <input 
+            type="email" 
+            [(ngModel)]="authEmail" 
+            placeholder="tu-correo@gmail.com" 
+            class="cyber-input"
+          />
+          <small class="field-hint">Te enviaremos un código de verificación de 6 dígitos.</small>
+        </div>
+
+        <div class="login-field-group">
+          <label class="input-label">NOMBRE EN CLAVE DEL AGENTE</label>
+          <input 
+            type="text" 
+            [(ngModel)]="authCodename" 
+            placeholder="Ej: FoxLeader, Shadow, Alfa" 
+            class="cyber-input"
+          />
+        </div>
+
+        <div class="login-field-group">
+          <label class="input-label">CONTRASEÑA</label>
+          <input 
+            type="password" 
+            [(ngModel)]="authPassword" 
+            placeholder="••••••••" 
+            class="cyber-input"
+          />
+        </div>
+
+        <div class="login-field-group">
+          <label class="input-label">SELECCIONA TU AVATAR DE COMBATE</label>
+          <div class="avatar-picker-grid">
+            <button 
+              *ngFor="let av of avatars" 
+              type="button"
+              class="avatar-pick-btn" 
+              [class.selected]="authAvatar === av"
+              (click)="authAvatar = av">
+              {{ av }}
+            </button>
+          </div>
+        </div>
+
+        <button class="cyber-btn success full-width" [disabled]="isAuthLoading" (click)="submitRegisterWithEmail()">
+          {{ isAuthLoading ? '⌛ Registrando en PostgreSQL...' : '📧 Crear Cuenta y Enviar Código' }}
+        </button>
+      </div>
+
+      <!-- Formulario 3: Confirmar Código -->
+      <div class="login-form-body" *ngIf="authTab === 'VERIFY'">
+        <div class="verify-instruction-box">
+          <span class="verify-icon">📬</span>
+          <p>Hemos enviado un código de seguridad de 6 dígitos a: <strong>{{ authEmail }}</strong></p>
+          <small *ngIf="authDevCode" class="dev-code-banner">
+            🔑 Clave de Acceso Rápido: <strong>{{ authDevCode }}</strong>
+          </small>
+        </div>
+
+        <div class="login-field-group">
+          <label class="input-label">CÓDIGO DE VERIFICACIÓN (6 DÍGITOS)</label>
+          <input 
+            type="text" 
+            maxlength="6"
+            [(ngModel)]="authVerificationCode" 
+            placeholder="000000" 
+            class="cyber-input code-input"
+            (keyup.enter)="submitVerifyCode()"
+          />
+        </div>
+
+        <button class="cyber-btn primary full-width" [disabled]="isAuthLoading" (click)="submitVerifyCode()">
+          {{ isAuthLoading ? '⌛ Verificando...' : '✅ Confirmar y Entrar' }}
+        </button>
+
+        <button class="cyber-btn secondary small-btn" (click)="resendVerificationCode()" style="margin-top: 8px;">
+          🔄 Reenviar Código
+        </button>
+      </div>
+
+      <!-- Divisor o Acceso Rápido como Invitado -->
+      <div class="guest-access-divider">
+        <span>O BIEN</span>
+      </div>
+
+      <button class="cyber-btn secondary full-width guest-btn" (click)="quickGuestLogin()">
+        ⚡ Ingreso Rápido como Invitado (1 Clic)
+      </button>
+
+    </div>
+  </main>
+
+  <header class="top-nav" *ngIf="agentProfile || roomState">
+    <div class="brand" (click)="navigateTo('LANDING')" style="cursor: pointer;">
       <span class="brand-logo">{{ roomState?.scenario?.icon || '🔐' }}</span>
       <div>
-        <h1 class="brand-title">{{ roomState?.scenario?.name || 'ESCAPE ROOM DIGITAL' }}</h1>
-        <p class="brand-tagline">{{ roomState?.scenario?.category || 'Misión Colaborativa Asimétrica en Tiempo Real' }}</p>
+        <h1 class="brand-title">{{ roomState?.scenario?.name || 'ESCAPE PROTOCOL 2026' }}</h1>
+        <p class="brand-tagline">{{ roomState?.scenario?.category || 'Red Cooperativa Asimétrica en Tiempo Real' }}</p>
       </div>
     </div>
 
-    <!-- Si el equipo está en sala / misión -->
-    <div class="hud-status-bar" *ngIf="roomState">
-      
-      <!-- Cronómetro Global si está jugando -->
-      <div class="timer-badge" *ngIf="roomState.status === 'PLAYING'" [class.warning]="roomState.timeRemaining < 120">
-        <span class="timer-icon">⏳</span>
-        <span class="timer-digits">{{ formatTime(roomState.timeRemaining) }}</span>
-      </div>
-
-      <!-- Puntuación y Pistas -->
-      <div class="score-pill" *ngIf="roomState.status === 'PLAYING'">
-        <span>⭐ {{ roomState.teamScore }} PTS</span>
-      </div>
-
-      <button 
-        class="hint-btn" 
-        *ngIf="roomState.status === 'PLAYING'" 
-        (click)="requestHint()" 
-        [disabled]="roomState.hintsRemaining <= 0"
-        title="Solicitar pista al Comando Central">
-        💡 Pistas ({{ roomState.hintsRemaining }})
+    <!-- Menú de navegación cuando no está en juego -->
+    <div class="nav-links-row" *ngIf="!roomState">
+      <button class="nav-link-btn" [class.active]="currentView === 'LANDING'" (click)="navigateTo('LANDING')">
+        🏠 Inicio
       </button>
-
-      <!-- Código de Sala -->
-      <div class="room-code-tag" (click)="copyRoomLink()" title="Haz clic para copiar el enlace">
-        <span class="code-label">SALA:</span>
-        <strong class="code-val">{{ roomState.code }}</strong>
-        <span class="copy-icon">📋</span>
-        <span class="copy-tooltip" *ngIf="copiedCodeSuccess">¡Copiado!</span>
-      </div>
-
-      <button class="db-records-hud-btn" (click)="openRecordsModal()" title="Consultar Récords en PostgreSQL">
-        🏆 Récords (PostgreSQL)
+      <button class="nav-link-btn" [class.active]="currentView === 'LOBBY'" (click)="navigateTo('LOBBY')">
+        🎮 Jugar / Crear Sala
       </button>
+      <button class="nav-link-btn" (click)="openRecordsModal()">
+        🏆 Salón de la Fama
+      </button>
+    </div>
+
+    <!-- Badge / Perfil de Agente y Botones Globales -->
+    <div class="hud-status-bar">
+
+      <!-- PERFIL DE AGENTE ACTIVO O BOTÓN DE LOGIN -->
+      <div class="agent-profile-pill" *ngIf="agentProfile; else guestBadge" (click)="openLoginModal()" title="Ver o editar perfil de agente">
+        <span class="agent-avatar">{{ agentProfile.avatar }}</span>
+        <div class="agent-info-column">
+          <div class="agent-name-row">
+            <strong class="agent-name">{{ agentProfile.codename }}</strong>
+            <span class="verified-mail-badge" *ngIf="agentProfile.isVerified" title="Cuenta confirmada por correo Gmail">✓ Gmail</span>
+          </div>
+          <span class="agent-rank-badge">{{ agentProfile.rank }} • ⭐ {{ agentProfile.xpPoints }} XP</span>
+        </div>
+        <button class="agent-logout-btn" (click)="logoutAgent(); $event.stopPropagation()" title="Cerrar sesión">✕</button>
+      </div>
+      <ng-template #guestBadge>
+        <button class="login-trigger-btn" (click)="openLoginModal()">
+          <span class="login-key-icon">🪪</span>
+          <span>Acceso Agente</span>
+        </button>
+      </ng-template>
+
+      <!-- Si el equipo está en sala / misión -->
+      <ng-container *ngIf="roomState">
+        <!-- Cronómetro Global si está jugando -->
+        <div class="timer-badge" *ngIf="roomState.status === 'PLAYING'" [class.warning]="roomState.timeRemaining < 120">
+          <span class="timer-icon">⏳</span>
+          <span class="timer-digits">{{ formatTime(roomState.timeRemaining) }}</span>
+        </div>
+
+        <!-- Puntuación Individual PvP y Posición en Vivo -->
+        <div class="pvp-hud-pill" *ngIf="roomState.status === 'PLAYING'" title="Tu Puntuación Individual y Posición en el Ranking">
+          <span class="pvp-rank-badge">{{ getRankBadge(getMyRank()) }}</span>
+          <span class="pvp-score-num">⭐ {{ getMyScore() }} PTS</span>
+        </div>
+
+        <button 
+          class="hint-btn" 
+          *ngIf="roomState.status === 'PLAYING'" 
+          (click)="requestHint()" 
+          [disabled]="roomState.hintsRemaining <= 0"
+          title="Solicitar pista al Comando Central">
+          💡 Pistas ({{ roomState.hintsRemaining }})
+        </button>
+
+        <!-- Código de Sala -->
+        <div class="room-code-tag" (click)="copyRoomLink()" title="Haz clic para copiar el enlace">
+          <span class="code-label">SALA:</span>
+          <strong class="code-val">{{ roomState.code }}</strong>
+          <span class="copy-icon">📋</span>
+          <span class="copy-tooltip" *ngIf="copiedCodeSuccess">¡Copiado!</span>
+        </div>
+
+        <button class="leave-room-hud-btn" (click)="leaveRoom()" title="Salir de la misión y volver al inicio">
+          🚪 Salir
+        </button>
+      </ng-container>
 
       <button class="sound-toggle-btn" (click)="toggleSound()" [title]="isSoundEnabled ? 'Silenciar sonidos' : 'Activar sonidos'">
         {{ isSoundEnabled ? '🔊' : '🔇' }}
@@ -139,21 +587,208 @@
     </div>
   </header>
 
-  <!-- Banner de Notificación de Errores -->
+  <!-- Notificación de Errores y Éxitos -->
   <div class="toast-error" *ngIf="errorMessage">
     ⚠️ {{ errorMessage }}
   </div>
+  <div class="toast-success" *ngIf="successMessage">
+    ✨ {{ successMessage }}
+  </div>
 
   <!-- ========================================================================= -->
-  <!-- 1. PANTALLA DE BIENVENIDA / CREAR O UNIRSE (Si no está en sala) -->
+  <!-- 0. PANTALLA PRINCIPAL: LANDING PAGE PÚBLICA -->
   <!-- ========================================================================= -->
-  <main class="welcome-screen" *ngIf="!roomState">
+  <main class="landing-page-container" *ngIf="currentView === 'LANDING' && !roomState && agentProfile">
+    
+    <!-- HERO SECTION -->
+    <section class="landing-hero-section">
+      <div class="hero-badge-tag">🛰️ PROTOCOLO MULTIJUGADOR COOPERATIVO EN TIEMPO REAL</div>
+      <h1 class="landing-hero-title">
+        ESCAPE ROOM <span class="gradient-text">DIGITAL ASIMÉTRICO</span>
+      </h1>
+      <p class="landing-hero-lead">
+        Desafíos tácticos multijugador donde <strong>ningún agente tiene la solución completa</strong>. 
+        Comunícate por radio, sincroniza tus claves clasificadas con tu escuadrón y escapa antes del colapso del sistema.
+      </p>
+
+      <div class="landing-cta-row">
+        <button class="cyber-btn primary hero-play-btn" (click)="navigateTo('LOBBY')">
+          🚀 Iniciar Misión Inmediata
+        </button>
+        <button class="cyber-btn secondary hero-login-btn" (click)="openLoginModal()">
+          🪪 {{ agentProfile ? 'Ver Mi Perfil de Agente' : 'Registrar Credencial de Agente' }}
+        </button>
+      </div>
+
+      <div class="hero-quick-stats">
+        <div class="q-stat-card">
+          <span class="q-stat-num">3</span>
+          <span class="q-stat-label">Escenarios Inmersivos</span>
+        </div>
+        <div class="q-stat-divider"></div>
+        <div class="q-stat-card">
+          <span class="q-stat-num">100%</span>
+          <span class="q-stat-label">Colaboración Asimétrica</span>
+        </div>
+        <div class="q-stat-divider"></div>
+        <div class="q-stat-card">
+          <span class="q-stat-num">Web Audio</span>
+          <span class="q-stat-label">Banda Sonora Procedural</span>
+        </div>
+        <div class="q-stat-divider"></div>
+        <div class="q-stat-card">
+          <span class="q-stat-num">PostgreSQL</span>
+          <span class="q-stat-label">Récords Persistentes</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CATÁLOGO DE ESCENARIOS INMERSIVOS -->
+    <section class="landing-scenarios-section">
+      <div class="section-title-box">
+        <span class="sec-badge">🌍 OPERACIONES DISPONIBLES</span>
+        <h2 class="sec-headline">ELIGE TU ESCENARIO DE ESCAPE</h2>
+        <p class="sec-desc">
+          Cada escenario cuenta con su propia atmósfera visual, telemetría especializada, acertijos únicos y paisajes sonoros en tiempo real.
+        </p>
+      </div>
+
+      <div class="scenario-showcase-grid">
+        
+        <!-- ESCENARIO 1: REACTOR CUÁNTICO -->
+        <div class="scenario-feature-card card-reactor" (click)="selectScenarioAndPlay('scenario_reactor')">
+          <div class="scenario-top-indicator hazard-stripes">
+            <span>ALERTA DE SOBRECARGA TÉRMICA</span>
+          </div>
+          <div class="sc-content">
+            <div class="sc-icon-circle">⚛️</div>
+            <h3 class="sc-title">El Reactor Cuántico</h3>
+            <span class="sc-category-tag">FÍSICA • RADIACIÓN • TERMODINÁMICA</span>
+            <p class="sc-narrative">
+              El núcleo del acelerador de partículas ha entrado en fase crítica. El equipo debe coordinar la calibración de frecuencias de plasma, manipular válvulas neumáticas simultáneas y estabilizar los fusibles magnéticos.
+            </p>
+            <div class="sc-meta-row">
+              <span>⏱️ 15 Minutos</span>
+              <span>👥 2-4 Jugadores</span>
+              <span>☢️ Nivel Difícil</span>
+            </div>
+            <button class="cyber-btn primary full-width">
+              Desplegar en el Reactor ➔
+            </button>
+          </div>
+        </div>
+
+        <!-- ESCENARIO 2: TUMBA DEL FARAÓN -->
+        <div class="scenario-feature-card card-temple" (click)="selectScenarioAndPlay('scenario_temple')">
+          <div class="scenario-top-indicator golden-torches">
+            <span>MALDICIÓN ANCESTRAL ACTIVADA</span>
+          </div>
+          <div class="sc-content">
+            <div class="sc-icon-circle">🏺</div>
+            <h3 class="sc-title">La Tumba del Faraón</h3>
+            <span class="sc-category-tag">ARQUEOLOGÍA • JEROGLÍFICOS • MISTERIO</span>
+            <p class="sc-narrative">
+              Sellados en las catacumbas bajo la pirámide dorada, los exploradores deben descifrar los acertijos de la balanza de Maat, traducir jeroglíficos asimétricos y encender los sellos de las deidades antiguas.
+            </p>
+            <div class="sc-meta-row">
+              <span>⏱️ 15 Minutos</span>
+              <span>👥 2-4 Jugadores</span>
+              <span>🕯️ Nivel Táctico</span>
+            </div>
+            <button class="cyber-btn primary full-width">
+              Explorar la Tumba ➔
+            </button>
+          </div>
+        </div>
+
+        <!-- ESCENARIO 3: ESTACIÓN ORBITAL -->
+        <div class="scenario-feature-card card-space" (click)="selectScenarioAndPlay('scenario_space')">
+          <div class="scenario-top-indicator cosmic-drift">
+            <span>FALLO CRÍTICO DE SOPORTE VITAL</span>
+          </div>
+          <div class="sc-content">
+            <div class="sc-icon-circle">🚀</div>
+            <h3 class="sc-title">Estación Orbital Ícaro</h3>
+            <span class="sc-category-tag">AEROESPACIAL • GRAVEDAD CERO • CIBERNÉTICA</span>
+            <p class="sc-narrative">
+              A 400 km de la superficie terrestre, el satélite de comando ha perdido sus sistemas de navegación. La tripulación debe sincronizar las esclusas de acoplamiento, purgar los tanques de oxígeno y anular la IA rebelde.
+            </p>
+            <div class="sc-meta-row">
+              <span>⏱️ 15 Minutos</span>
+              <span>👥 2-4 Jugadores</span>
+              <span>🛰️ Nivel Extremo</span>
+            </div>
+            <button class="cyber-btn primary full-width">
+              Abordar la Estación ➔
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- LIVE LEADERBOARD PREVIEW (POSTGRESQL) -->
+    <section class="landing-leaderboard-section">
+      <div class="section-title-box">
+        <span class="sec-badge">🐘 POSTGRESQL CLOUD DATABASE</span>
+        <h2 class="sec-headline">SALÓN DE LA FAMA: ESCUADRONES DESTACADOS</h2>
+        <p class="sec-desc">
+          Misiones completadas con mayor puntaje registradas de manera persistente en la base de datos de comando.
+        </p>
+      </div>
+
+      <div class="cyber-panel leaderboard-landing-card">
+        <div class="records-table-container">
+          <table class="cyber-table" *ngIf="leaderboardRecords.length > 0; else noLandingRecords">
+            <thead>
+              <tr>
+                <th>RANGO</th>
+                <th>SALA</th>
+                <th>ESCENARIO</th>
+                <th>PUNTOS</th>
+                <th>TIEMPO RESTANTE</th>
+                <th>AGENTES DE CAMPO</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let r of leaderboardRecords.slice(0, 5); let idx = index">
+                <td><strong class="rank-pos">#{{ idx + 1 }}</strong></td>
+                <td><code>{{ r.roomCode }}</code></td>
+                <td>{{ r.scenarioName }}</td>
+                <td class="gold-text">⭐ {{ r.teamScore }}</td>
+                <td>{{ formatTime(r.timeRemaining) }}</td>
+                <td>{{ r.playersNames }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #noLandingRecords>
+            <div class="empty-records">
+              <p>🏆 Salón de la Fama en espera del primer escuadrón que supere la prueba.</p>
+              <button class="cyber-btn secondary" (click)="navigateTo('LOBBY')">¡Inaugurar el Salón de la Fama!</button>
+            </div>
+          </ng-template>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 1. PANTALLA DE SALA DE ESPERA / CREAR O UNIRSE (LOBBY VIEW SIN SALA) -->
+  <!-- ========================================================================= -->
+  <main class="welcome-screen" *ngIf="currentView === 'LOBBY' && !roomState && agentProfile">
     <div class="cyber-panel hero-card">
+      
+      <div class="back-to-landing-bar">
+        <button class="nav-back-btn" (click)="navigateTo('LANDING')">
+          ⬅ Volver a la Portada Principal
+        </button>
+      </div>
+
       <div class="hero-badge">🤝 MULTIJUGADOR COOPERATIVO (2 - 4 AGENTES)</div>
-      <h2 class="hero-title">Sala de Escape Colaborativa</h2>
+      <h2 class="hero-title">Configuración de Despliegue de Misión</h2>
       <p class="hero-desc">
-        Un juego de acertijos asimétricos donde <strong>ningún jugador tiene la solución completa</strong>. 
-        Para avanzar, todos los miembros deben comunicarse y combinar sus fragmentos de código e información en tiempo real.
+        Personaliza tu agente y coordina la sala de escape con tu equipo en red local o remota.
       </p>
 
       <!-- Selector de Perfil -->
@@ -169,7 +804,7 @@
           />
         </div>
 
-        <label class="input-label" style="margin-top: 16px;">ELIGE TU AVATAR</label>
+        <label class="input-label" style="margin-top: 16px;">ELIGE TU AVATAR OPERATIVO</label>
         <div class="avatar-picker-grid">
           <button 
             *ngFor="let av of avatars" 
@@ -183,7 +818,7 @@
 
       <!-- Selector de Escenario Previo al Crear -->
       <div class="scenarios-selector-box" *ngIf="availableScenarios.length > 0">
-        <label class="input-label">ELIGE EL ENTORNO / ESCENARIO DE ESCAPE</label>
+        <label class="input-label">SELECCIONA EL ENTORNO DE LA MISIÓN</label>
         <div class="scenarios-grid">
           <div 
             *ngFor="let sc of availableScenarios" 
@@ -204,15 +839,15 @@
       <div class="action-cards-grid">
         <div class="action-card create-card">
           <h3>🚀 Iniciar Nueva Misión</h3>
-          <p>Crea una sala de escape con el escenario seleccionado e invita a tu equipo.</p>
+          <p>Genera un código de 4 caracteres con el escenario seleccionado y lidera a tu escuadrón.</p>
           <button class="cyber-btn primary full-width" (click)="createRoom()">
             Crear Sala de Escape
           </button>
         </div>
 
         <div class="action-card join-card">
-          <h3>🔑 Unirse o Reconectarse</h3>
-          <p>Ingresa el código de 4 caracteres de una sesión ya iniciada (se solicitará reincorporación con -10s).</p>
+          <h3>🔑 Unirse a Sala Existente</h3>
+          <p>Ingresa el código de 4 caracteres de la sesión activa de tu líder.</p>
           <div class="join-input-group">
             <input 
               type="text" 
@@ -228,17 +863,41 @@
         </div>
       </div>
 
-      <!-- Botón de acceso a base de datos PostgreSQL -->
+      <!-- SALAS ACTIVAS EN ESPERA (1 CLIC PARA ENTRAR A LA MISMA PARTIDA) -->
+      <div class="active-lobbies-section cyber-panel" *ngIf="activeLobbies.length > 0">
+        <div class="lobbies-header-row">
+          <span class="live-dot-pulse">🟢</span>
+          <div>
+            <h4 class="lobbies-title">PARTIDAS ABIERTAS EN ESPERA ({{ activeLobbies.length }})</h4>
+            <small class="lobbies-desc">Únete directamente a la sala de tu compañero sin escribir código</small>
+          </div>
+        </div>
+
+        <div class="lobbies-grid">
+          <div *ngFor="let lob of activeLobbies" class="lobby-entry-card">
+            <span class="lob-avatar">{{ lob.hostAvatar }}</span>
+            <div class="lob-meta">
+              <strong class="lob-host-name">{{ lob.hostName }} (Líder)</strong>
+              <span class="lob-sc-tag">{{ lob.scenarioIcon }} {{ lob.scenarioName }}</span>
+              <small class="lob-capacity">👥 {{ lob.currentPlayers }}/{{ lob.maxPlayers }} Agentes</small>
+            </div>
+            <button class="cyber-btn success small-btn" (click)="quickJoinLobby(lob.code)">
+              🎯 Entrar a esta Partida ({{ lob.code }})
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="db-history-card-row" style="margin-top: 20px;">
         <button class="cyber-btn secondary full-width" (click)="openRecordsModal()">
-          🐘 Ver Salón de la Fama y Récords de Misiones (PostgreSQL)
+          🐘 Ver Salón de la Fama y Récords (PostgreSQL)
         </button>
       </div>
     </div>
   </main>
 
   <!-- ========================================================================= -->
-  <!-- 2. PANTALLA DE SALA DE ESPERA (LOBBY) -->
+  <!-- 2. PANTALLA DE SALA DE ESPERA (LOBBY CON SALA CREADA) -->
   <!-- ========================================================================= -->
   <main class="lobby-screen" *ngIf="roomState && roomState.status === 'LOBBY'">
     <div class="cyber-panel lobby-panel">
@@ -248,9 +907,14 @@
           <span class="phase-tag">SALA DE PREPARACIÓN</span>
           <h2 class="lobby-title">Código de Misión: <span class="highlight-code">{{ roomState.code }}</span></h2>
         </div>
-        <button class="cyber-btn copy-btn" (click)="copyRoomLink()">
-          📋 Copiar Enlace
-        </button>
+        <div class="lobby-header-actions">
+          <button class="cyber-btn copy-btn" (click)="copyRoomLink()">
+            📋 Copiar Enlace
+          </button>
+          <button class="cyber-btn alert small-btn" (click)="leaveRoom()">
+            🚪 Salir de la Sala
+          </button>
+        </div>
       </div>
 
       <div class="wifi-share-box">
@@ -348,13 +1012,69 @@
   </main>
 
   <!-- ========================================================================= -->
-  <!-- 3. PANTALLA PRINCIPAL DE MISIÓN ACTIVA (PLAYING) -->
+  <!-- 3. PANTALLA PRINCIPAL DE MISIÓN ACTIVA (PLAYING CON AMBIENTACIÓN PERSONALIZADA) -->
   <!-- ========================================================================= -->
-  <main class="mission-screen" *ngIf="roomState && roomState.status === 'PLAYING'">
+  <main [class]="'mission-screen ' + getScenarioThemeClass()" *ngIf="roomState && roomState.status === 'PLAYING'">
     
-    <!-- Encabezado del Nivel / Cámara Actual -->
-    <section class="chamber-banner cyber-panel">
+    <!-- BARRA DE TELEMETRÍA Y AMBIENTACIÓN ESPECÍFICA DE CADA ESCENARIO -->
+    <div class="scenario-telemetry-strip">
+      
+      <!-- CASO 1: AMBIENTACIÓN REACTOR CUÁNTICO -->
+      <div class="telemetry-box reactor-telemetry" *ngIf="getScenarioThemeClass() === 'ambient-reactor'">
+        <div class="hazard-indicator-pill blink">
+          <span class="pill-dot"></span>
+          <span>RADIACIÓN CRÍTICA: 18.4 mSv/h</span>
+        </div>
+        <div class="telemetry-stat">
+          <span class="t-label">TEMP. NÚCLEO:</span>
+          <strong class="t-val text-cyan">1,480 °K</strong>
+        </div>
+        <div class="telemetry-stat">
+          <span class="t-label">ESTABILIDAD DEL CAMPO:</span>
+          <strong class="t-val text-green">MAG-SHIELD 84%</strong>
+        </div>
+      </div>
+
+      <!-- CASO 2: AMBIENTACIÓN TUMBA DEL FARAÓN -->
+      <div class="telemetry-box temple-telemetry" *ngIf="getScenarioThemeClass() === 'ambient-temple'">
+        <div class="torch-torch-icon flame-anim">🔥</div>
+        <div class="telemetry-stat">
+          <span class="t-label">MALDICIÓN DE ANUBIS:</span>
+          <strong class="t-val text-gold">FASE CRECIENTE (NIVEL II)</strong>
+        </div>
+        <div class="telemetry-stat">
+          <span class="t-label">ALINEACIÓN ESTELAR:</span>
+          <strong class="t-val text-gold">ORIÓN 94.2°</strong>
+        </div>
+        <div class="torch-torch-icon flame-anim">🔥</div>
+      </div>
+
+      <!-- CASO 3: AMBIENTACIÓN ESTACIÓN ORBITAL -->
+      <div class="telemetry-box space-telemetry" *ngIf="getScenarioThemeClass() === 'ambient-space'">
+        <div class="radar-ping-icon">🛰️</div>
+        <div class="telemetry-stat">
+          <span class="t-label">OXÍGENO DE CABINA O2:</span>
+          <strong class="t-val text-cyan">92.4% (DESPRESURIZACIÓN ACTIVA)</strong>
+        </div>
+        <div class="telemetry-stat">
+          <span class="t-label">DERIVA ORBITAL:</span>
+          <strong class="t-val text-pink">-0.04°/s VECTOR PERIGEO</strong>
+        </div>
+      </div>
+
+      <!-- Botón de salida voluntaria de la misión -->
+      <button class="btn-abandon-mission" (click)="leaveRoom()" title="Abandonar partida activa">
+        🚪 Abandonar Misión
+      </button>
+    </div>
+
+    <!-- Encabezado del Nivel / Cámara Actual con Ilustración de Entorno Inmersivo -->
+    <section class="chamber-banner cyber-panel" [style.background-image]="roomState.scenario?.envImage ? 'linear-gradient(to right, rgba(10, 16, 26, 0.94) 30%, rgba(10, 16, 26, 0.72)), url(' + roomState.scenario?.envImage + ')' : null">
       <div class="chamber-info">
+        <div class="chamber-env-badge" *ngIf="roomState.scenario?.envImage">
+          <span class="env-camera-dot"></span>
+          <span>CÁMARA EN VIVO: {{ roomState.scenario?.name }}</span>
+        </div>
         <span class="phase-tag">{{ roomState.currentLevel?.title }}</span>
         <h2 class="chamber-title">{{ roomState.currentLevel?.subtitle }}</h2>
         <p class="chamber-desc">{{ roomState.currentLevel?.description }}</p>
@@ -419,6 +1139,7 @@
               <small class="frag-hint">💡 {{ roomState.myAsymmetricData.hint }}</small>
             </div>
           </div>
+
         </section>
 
         <!-- PANEL DE BITÁCORA DE PISTAS DESBLOQUEADAS POR EL EQUIPO -->
@@ -433,6 +1154,7 @@
               <p class="clue-text">{{ clue }}</p>
             </div>
           </div>
+
         </section>
 
         <!-- ENIGMA INTERACTIVO CENTRAL ACTIVO -->
@@ -461,6 +1183,332 @@
             </div>
           </div>
 
+
+          <!-- ROMPECABEZAS COLABORATIVO POR TURNOS (TILE_PUZZLE) -->
+          <div class="puzzle-widget-tilepuzzle" *ngIf="roomState.currentPuzzle?.type === 'TILE_PUZZLE'">
+            
+            <!-- Banner de Turno Dinámico -->
+            <div class="tile-turn-banner" [class.turn-mine]="isMyTurnInTilePuzzle()" [class.turn-other]="!isMyTurnInTilePuzzle()" *ngIf="roomState.tilePuzzleState as tp">
+              <div class="turn-banner-content">
+                <span class="turn-beacon-pulse"></span>
+                <span class="turn-banner-icon">{{ isMyTurnInTilePuzzle() ? '👉' : '⏳' }}</span>
+                <div class="turn-banner-text">
+                  <strong *ngIf="isMyTurnInTilePuzzle()">¡ES TU TURNO DE MOVER!</strong>
+                  <strong *ngIf="!isMyTurnInTilePuzzle()">TURNO DE: {{ tp.turnPlayerAvatar }} {{ tp.turnPlayerName }}</strong>
+                  <p *ngIf="isMyTurnInTilePuzzle()">Haz clic en cualquier pieza iluminada (adyacente a la casilla vacía) para deslizarla.</p>
+                  <p *ngIf="!isMyTurnInTilePuzzle()">Esperando a que {{ tp.turnPlayerName }} realice su movimiento táctico...</p>
+                </div>
+              </div>
+              <div class="turn-badge-pill">
+                Movimientos del Escuadrón: <strong>{{ tp.movesCount }}</strong>
+              </div>
+            </div>
+
+            <div class="tile-puzzle-main-layout" *ngIf="roomState.tilePuzzleState as tp">
+              
+              <!-- Tablero Interactivo 3x3 -->
+              <div class="tile-board-3x3" [class.interactive-active]="isMyTurnInTilePuzzle()">
+                <div 
+                  *ngFor="let tileNum of tp.board; let idx = index"
+                  class="tile-cell-slot"
+                  [class.is-empty]="tileNum === 0"
+                  [class.is-movable]="isMyTurnInTilePuzzle() && isTileAdjacentToEmpty(idx)"
+                  (click)="onTileClick(idx)">
+                  
+                  <!-- Pieza Numerada con Ilustración Temática -->
+                  <div *ngIf="tileNum !== 0" class="tile-card-inner" [class]="'theme-' + tp.thematicImage + ' tile-pos-' + tileNum">
+                    <span class="tile-order-chip">#{{ tileNum }}</span>
+                    
+                    <div class="thematic-tile-art" [ngSwitch]="tp.thematicImage">
+                      <!-- Escenario 1: Reactor Cuántico -->
+                      <div *ngSwitchCase="'reactor_core'" class="art-slice reactor-slice">
+                        <span class="slice-symbol">⚛️</span>
+                        <div class="slice-vector-rings"></div>
+                        <span class="slice-label">NÚCLEO {{ tileNum }}</span>
+                      </div>
+                      <!-- Escenario 2: Tumba del Faraón -->
+                      <div *ngSwitchCase="'temple_mask'" class="art-slice temple-slice">
+                        <span class="slice-symbol">🏺</span>
+                        <div class="slice-hieroglyph-pattern"></div>
+                        <span class="slice-label">LOSA {{ tileNum }}</span>
+                      </div>
+                      <!-- Escenario 3: Estación Orbital -->
+                      <div *ngSwitchCase="'space_station'" class="art-slice space-slice">
+                        <span class="slice-symbol">🛰️</span>
+                        <div class="slice-radar-grid"></div>
+                        <span class="slice-label">MÓDULO {{ tileNum }}</span>
+                      </div>
+                    </div>
+
+                    <span class="movable-indicator" *ngIf="isMyTurnInTilePuzzle() && isTileAdjacentToEmpty(idx)">
+                      Mover ➔
+                    </span>
+                  </div>
+
+                  <!-- Casilla Vacía (Target) -->
+                  <div *ngIf="tileNum === 0" class="empty-cell-placeholder">
+                    <span class="empty-cross">+</span>
+                    <small>ESPACIO VACÍO</small>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Panel Lateral con Esquema Objetivo y Guía de Turnos -->
+              <div class="tile-puzzle-side-guide">
+                <div class="objective-preview-panel cyber-panel">
+                  <span class="obj-title">🎯 ESQUEMA OBJETIVO RESTAURADO</span>
+                  
+                  <div class="obj-preview-box" [ngSwitch]="tp.thematicImage">
+                    <div *ngSwitchCase="'reactor_core'" class="obj-art-preview reactor-bg">
+                      <span class="obj-big-icon">⚛️</span>
+                      <strong>Núcleo Cuántico Estable</strong>
+                      <small>Sincronización de Flujo de Plasma</small>
+                    </div>
+                    <div *ngSwitchCase="'temple_mask'" class="obj-art-preview temple-bg">
+                      <span class="obj-big-icon">🏺</span>
+                      <strong>Relicario del Faraón</strong>
+                      <small>Sello Sagrado de la Esfinge</small>
+                    </div>
+                    <div *ngSwitchCase="'space_station'" class="obj-art-preview space-bg">
+                      <span class="obj-big-icon">🚀</span>
+                      <strong>Estación Orbital Ícaro</strong>
+                      <small>Estructura de Paneles y Módulos</small>
+                    </div>
+                  </div>
+
+                  <p class="obj-hint-text">
+                    💡 <em>Meta:</em> Recompongan las 8 piezas en orden del <strong>#1 al #8</strong> de izquierda a derecha y de arriba hacia abajo.
+                  </p>
+                </div>
+
+                <div class="turn-rotation-list cyber-panel">
+                  <span class="rot-title">👥 ORDEN DE TURNOS:</span>
+                  <div class="rot-players-flow">
+                    <div 
+                      *ngFor="let pl of roomState.players; let pIdx = index" 
+                      class="rot-player-item"
+                      [class.current-active]="tp.turnPlayerId === pl.id">
+                      <span class="rot-avatar">{{ pl.avatar }}</span>
+                      <div class="rot-info">
+                        <strong>{{ pl.name }}</strong>
+                        <span *ngIf="tp.turnPlayerId === pl.id" class="turn-now-tag">SU TURNO</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+
+
+          <!-- ROMPECABEZAS DE COLOCACIÓN DE PIEZAS (JIGSAW_PLACEMENT) -->
+          <div class="puzzle-widget-jigsaw" *ngIf="roomState.currentPuzzle?.type === 'JIGSAW_PLACEMENT'">
+            
+            <!-- Banner de Carrera de Rompecabezas en Paralelo (El primero en armarlo gana) -->
+            <div class="tile-turn-banner pvp-race-banner" *ngIf="roomState.jigsawPuzzleState as jp">
+              <div class="turn-banner-content">
+                <span class="turn-beacon-pulse"></span>
+                <span class="turn-banner-icon">🏁</span>
+                <div class="turn-banner-text">
+                  <strong>¡CARRERA DE ROMPECABEZAS: EL PRIMERO EN ARMARLO GANA (+600 PTS)!</strong>
+                  <p *ngIf="selectedJigsawPiece !== null">
+                    🟢 <strong>Pieza #{{ selectedJigsawPiece + 1 }}</strong> seleccionada. Haz clic en una casilla vacía del tablero, o pulsa "⚡ Colocar".
+                  </p>
+                  <p *ngIf="selectedJigsawPiece === null && selectedJigsawSlot !== null">
+                    🎯 <strong>Casilla #{{ selectedJigsawSlot + 1 }}</strong> elegida. Haz clic en cualquier pieza de tu bandeja para insertarla.
+                  </p>
+                  <p *ngIf="selectedJigsawPiece === null && selectedJigsawSlot === null">
+                    Haz clic en una pieza y luego en la casilla donde deseas encajarla (o doble clic para colocar rápido).
+                  </p>
+                </div>
+              </div>
+              <div class="race-progress-pills">
+                <div class="race-pill my-race-pill">
+                  <span>Tu Progreso:</span>
+                  <strong>{{ jp.correctCount || 0 }}/9 Piezas</strong>
+                </div>
+                <div *ngFor="let rival of jp.rivalsProgress" class="race-pill rival-race-pill">
+                  <span>{{ rival.avatar }} {{ rival.name }}:</span>
+                  <strong>{{ rival.correctCount || 0 }}/9</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="jigsaw-main-layout" *ngIf="roomState.jigsawPuzzleState as jp">
+              
+              <!-- Tablero 3x3 de Colocación -->
+              <div class="jigsaw-board-container">
+                <div class="board-header-row">
+                  <span class="board-label">🏛️ TABLERO DE ENSAMBLAJE (3x3)</span>
+                  <button class="cyber-btn secondary small-btn" (click)="resetJigsaw()" title="Reiniciar todas las piezas">
+                    🔄 Reiniciar Piezas
+                  </button>
+                </div>
+
+                <div class="jigsaw-board-grid">
+                  <div 
+                    *ngFor="let slotPiece of jp.boardSlots; let slotIdx = index"
+                    class="jigsaw-slot"
+                    [class.slot-empty]="slotPiece === null"
+                    [class.slot-filled]="slotPiece !== null"
+                    [class.slot-correct]="slotPiece === slotIdx"
+                    [class.slot-ready-target]="isMyTurnInJigsaw() && selectedJigsawPiece !== null && slotPiece === null"
+                    [class.slot-target-active]="selectedJigsawSlot === slotIdx"
+                    (click)="onJigsawSlotClick(slotIdx)">
+                    
+                    <!-- Casilla ocupada por una pieza colocada -->
+                    <div 
+                      *ngIf="slotPiece !== null" 
+                      class="jigsaw-piece-placed"
+                      [ngStyle]="getJigsawPieceStyle(slotPiece, jp.puzzleImage)">
+                      <span class="piece-tag">#{{ slotPiece + 1 }}</span>
+                      <span class="remove-hint" title="Haz clic para retirar pieza">✕</span>
+                    </div>
+
+                    <!-- Casilla disponible para colocar -->
+                    <div *ngIf="slotPiece === null" class="jigsaw-slot-target">
+                      <span class="slot-number">{{ slotIdx + 1 }}</span>
+                      <small *ngIf="selectedJigsawPiece !== null" class="slot-prompt">👉 Colocar aquí</small>
+                      <small *ngIf="selectedJigsawSlot === slotIdx" class="slot-chosen-hint">🎯 Casilla elegida</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bandeja de Piezas Disponibles y Guía Objetivo -->
+              <div class="jigsaw-tray-column">
+                
+                <!-- Bandeja de piezas -->
+                <div class="jigsaw-pieces-tray cyber-panel">
+                  <div class="tray-header">
+                    <span class="tray-title">📦 BANDEJA DE PIEZAS DISPONIBLES</span>
+                    <span class="pieces-count">({{ jp.availablePieces.length }} restantes)</span>
+                  </div>
+
+                  <p class="tray-inst" *ngIf="jp.availablePieces.length > 0">
+                    Haz clic en una pieza y luego en una casilla del tablero (o usa ⚡ Colocar):
+                  </p>
+                  <p class="tray-inst-done" *ngIf="jp.availablePieces.length === 0">
+                    🎉 ¡Todas las piezas han sido colocadas!
+                  </p>
+
+                  <div class="pieces-tray-grid">
+                    <div 
+                      *ngFor="let pieceId of jp.availablePieces"
+                      class="jigsaw-tray-piece"
+                      [class.is-selected]="selectedJigsawPiece === pieceId"
+                      [class.selectable]="isMyTurnInJigsaw()"
+                      [ngStyle]="getJigsawPieceStyle(pieceId, jp.puzzleImage)"
+                      (click)="selectJigsawPiece(pieceId)"
+                      (dblclick)="quickPlacePiece(pieceId)"
+                      [title]="'Pieza #' + (pieceId + 1) + ' - Clic para seleccionar o doble clic para colocar'">
+                      <span class="piece-badge">#{{ pieceId + 1 }}</span>
+                      <span class="selected-checkmark" *ngIf="selectedJigsawPiece === pieceId">✓ LISTA</span>
+                      <button 
+                        *ngIf="selectedJigsawPiece === pieceId" 
+                        class="tray-quick-place-btn" 
+                        (click)="$event.stopPropagation(); quickPlacePiece(pieceId)" 
+                        title="Colocar de inmediato">
+                        ⚡ Colocar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Imagen Original de Referencia -->
+                <div class="jigsaw-reference-card cyber-panel">
+                  <span class="ref-title">🎯 ESQUEMA ORIGINAL DE REFERENCIA</span>
+                  <div class="ref-image-wrapper">
+                    <img [src]="jp.puzzleImage" alt="Esquema Original" class="ref-img" />
+                  </div>
+                  <small class="ref-hint">Guíate de la imagen original para ubicar la posición de cada pieza.</small>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+          <!-- JUEGO TIPO TRES EN RAYA 1 VS 1 COMPETITIVO (TICTACTOE_VS) -->
+          <div class="puzzle-widget-tictactoe" *ngIf="roomState.currentPuzzle?.type === 'TICTACTOE_VS'">
+            
+            <div class="tictactoe-wrapper" *ngIf="roomState.ticTacToeState as ttt">
+              
+              <!-- Duelo Header: Jugador X vs Jugador O -->
+              <div class="duel-versus-header cyber-panel">
+                <div class="fighter-card fighter-x" [class.turn-glow]="ttt.currentTurn === 'X' && !ttt.isCompleted" [class.is-me]="ttt.playerX.id === mySocketId">
+                  <span class="fighter-symbol">X</span>
+                  <span class="fighter-avatar">{{ ttt.playerX.avatar }}</span>
+                  <div class="fighter-meta">
+                    <strong>{{ ttt.playerX.name }}</strong>
+                    <span class="fighter-role">{{ ttt.playerX.id === mySocketId ? '(TÚ)' : '(AGENTE ALFA)' }}</span>
+                  </div>
+                  <span class="turn-indicator-badge" *ngIf="ttt.currentTurn === 'X' && !ttt.isCompleted">TURNO ACTIVO</span>
+                </div>
+
+                <div class="versus-divider">
+                  <span class="vs-text">VS</span>
+                  <span class="vs-tag">DUELO 1v1</span>
+                </div>
+
+                <div class="fighter-card fighter-o" [class.turn-glow]="ttt.currentTurn === 'O' && !ttt.isCompleted" [class.is-me]="ttt.playerO.id === mySocketId">
+                  <span class="fighter-symbol">O</span>
+                  <span class="fighter-avatar">{{ ttt.playerO.avatar }}</span>
+                  <div class="fighter-meta">
+                    <strong>{{ ttt.playerO.name }}</strong>
+                    <span class="fighter-role">{{ ttt.playerO.id === mySocketId ? '(TÚ)' : (ttt.playerO.isBot ? '(BOT RIVAL)' : '(RIVAL)') }}</span>
+                  </div>
+                  <span class="turn-indicator-badge" *ngIf="ttt.currentTurn === 'O' && !ttt.isCompleted">TURNO ACTIVO</span>
+                </div>
+              </div>
+
+              <!-- Banner de Estado del Duelo -->
+              <div class="duel-status-banner" [class.won]="ttt.winner === 'X' || ttt.winner === 'O'" [class.draw]="ttt.winner === 'DRAW'">
+                <div *ngIf="!ttt.isCompleted">
+                  <span class="duel-status-icon">⚔️</span>
+                  <span>Turno de <strong>{{ ttt.currentTurn === 'X' ? ttt.playerX.name : ttt.playerO.name }} ({{ ttt.currentTurn }})</strong>. Alinea 3 casillas para hackear el cortafuegos.</span>
+                </div>
+                <div *ngIf="ttt.isCompleted && (ttt.winner === 'X' || ttt.winner === 'O')">
+                  <span class="duel-status-icon">🏆</span>
+                  <span><strong>¡VICTORIA CIBERNÉTICA!</strong> {{ ttt.winner === 'X' ? ttt.playerX.name : ttt.playerO.name }} ha ganado el duelo. Cortafuegos anulado con éxito (+500 XP).</span>
+                </div>
+                <div *ngIf="ttt.isCompleted && ttt.winner === 'DRAW'">
+                  <span class="duel-status-icon">🤝</span>
+                  <span><strong>¡EMPATE ESTRATÉGICO!</strong> Ambos agentes bloquearon el cortafuegos. Sistema estabilizado (+300 XP).</span>
+                </div>
+              </div>
+
+              <!-- Tablero 3x3 de Tres en Raya -->
+              <div class="tictactoe-grid-container">
+                <div class="tictactoe-grid">
+                  <button 
+                    *ngFor="let cell of ttt.board; let cellIdx = index"
+                    class="ttt-cell"
+                    [class.cell-x]="cell === 'X'"
+                    [class.cell-o]="cell === 'O'"
+                    [class.cell-winning]="ttt.winningLine && ttt.winningLine.includes(cellIdx)"
+                    [disabled]="cell !== null || ttt.isCompleted"
+                    (click)="onTicTacToeCellClick(cellIdx)">
+                    <span class="ttt-mark" *ngIf="cell">{{ cell }}</span>
+                    <span class="ttt-hover-mark" *ngIf="!cell && !ttt.isCompleted && isMyTurnInTicTacToe()">
+                      {{ getMyTicTacToeSymbol() || ttt.currentTurn }}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Botón de Reiniciar Duelo -->
+              <div class="duel-controls-bar">
+                <button class="cyber-btn secondary" (click)="resetTicTacToe()">
+                  🔄 Reiniciar Tablero de Duelo
+                </button>
+              </div>
+
+            </div>
+          </div>
+
           <!-- 1. PUZZLE: TECLADO NUMÉRICO (ASYNC_KEYPAD) -->
           <div class="puzzle-widget-keypad" *ngIf="roomState.currentPuzzle?.type === 'ASYNC_KEYPAD'">
             <div class="keypad-screen">
@@ -478,13 +1526,34 @@
             </div>
           </div>
 
-          <!-- 2. PUZZLE: CONEXIÓN DE FUSIBLES (CABLE_SEQUENCE) -->
+
+          <!-- 2. PUZZLE: CONEXIÓN DE FUSIBLES INDIVIDUAL (CABLE_SEQUENCE - EL PRIMERO EN ARMARLO GANA) -->
           <div class="puzzle-widget-cables" *ngIf="roomState.currentPuzzle?.type === 'CABLE_SEQUENCE'">
-            <p class="sub-inst">Seleccionen los 4 fusibles en el orden estricto del manual y transmitan la secuencia:</p>
+            <div class="tile-turn-banner pvp-race-banner">
+              <div class="turn-banner-content">
+                <span class="turn-beacon-pulse"></span>
+                <span class="turn-banner-icon">⚡</span>
+                <div class="turn-banner-text">
+                  <strong>¡DUELO DE FUSIBLES: EL PRIMERO EN CONECTAR EL ORDEN CORRECTO GANA (+500 PTS)!</strong>
+                  <p>Conecta los 4 fusibles en tu orden táctico y transmite la secuencia antes que tu rival.</p>
+                </div>
+              </div>
+              <div class="race-progress-pills">
+                <div class="race-pill my-race-pill">
+                  <span>Tu Secuencia:</span>
+                  <strong>{{ (roomState.sharedCableSequence || []).length }}/4 Conectados</strong>
+                </div>
+                <div *ngFor="let rival of roomState.rivalsCableProgress" class="race-pill rival-race-pill">
+                  <span>{{ rival.avatar }} {{ rival.name }}:</span>
+                  <strong>{{ rival.cablesConnected }}/4</strong>
+                </div>
+              </div>
+            </div>
+            <p class="sub-inst">Selecciona los 4 fusibles en el orden estricto de tu manual y transmite la secuencia:</p>
 
             <div class="cable-buttons-grid">
               <button 
-                *ngFor="let c of roomState.myAsymmetricData?.availableButtons || ['AZUL', 'AMARILLO', 'ROJO', 'VERDE']" 
+                *ngFor="let c of ['AZUL', 'AMARILLO', 'ROJO', 'VERDE']" 
                 class="cable-fuse-btn"
                 [class.fuse-azul]="c === 'AZUL'"
                 [class.fuse-amarillo]="c === 'AMARILLO'"
@@ -498,7 +1567,7 @@
 
             <div class="current-sequence-display">
               <div class="seq-info-row">
-                <span class="seq-label">Orden compartido por el equipo ({{ (roomState.sharedCableSequence || []).length }}/4):</span>
+                <span class="seq-label">Tu secuencia de fusibles ({{ (roomState.sharedCableSequence || []).length }}/4):</span>
                 <button class="cyber-btn secondary small-btn" *ngIf="(roomState.sharedCableSequence || []).length > 0" (click)="resetCables()">
                   🔄 Borrar Todo
                 </button>
@@ -519,10 +1588,11 @@
                 class="cyber-btn success submit-cables-btn" 
                 [disabled]="(roomState.sharedCableSequence || []).length !== 4"
                 (click)="submitCableSequence()">
-                ⚡ TRANSMITIR SECUENCIA DE FUSIBLES
+                ⚡ TRANSMITIR MI SECUENCIA Y GANAR EL RETO
               </button>
             </div>
           </div>
+
 
           <!-- 3. PUZZLE: DECODIFICADOR (DECODER) -->
           <div class="puzzle-widget-decoder" *ngIf="roomState.currentPuzzle?.type === 'DECODER'">
@@ -543,6 +1613,7 @@
               </div>
             </div>
           </div>
+
 
           <!-- 4. PUZZLE: VÁLVULAS DE PRESIÓN SIMULTÁNEAS (PRESSURE_VALVES) -->
           <div class="puzzle-widget-valves" *ngIf="roomState.currentPuzzle?.type === 'PRESSURE_VALVES'">
@@ -578,6 +1649,7 @@
             </div>
           </div>
 
+
           <!-- 5. PUZZLE: SOBRECARGA SIMON MEMORY (SIMON_MEMORY) -->
           <div class="puzzle-widget-simon" *ngIf="roomState.currentPuzzle?.type === 'SIMON_MEMORY'">
             <div class="simon-quadrants-grid">
@@ -593,6 +1665,128 @@
               </button>
             </div>
             <p class="simon-steps-count">Secuencia ingresada: {{ simonUserInput.length }} / 4 pasos</p>
+          </div>
+
+          <!-- 4. PUZZLE: DUELO PIEDRA, PAPEL O TIJERA CUÁNTICO (RPS_DUEL) -->
+          <div class="puzzle-widget-rps" *ngIf="roomState.currentPuzzle?.type === 'RPS_DUEL'">
+            <div class="rps-wrapper" *ngIf="roomState.rpsState as rps">
+              
+              <!-- Marcador de Duelistas -->
+              <div class="rps-scoreboard-header cyber-panel">
+                <div class="rps-fighter-box fighter-left" [class.lead]="rps.player1Score > rps.player2Score" [class.is-me]="rps.player1.id === mySocketId">
+                  <span class="rps-fighter-avatar">{{ rps.player1.avatar }}</span>
+                  <div class="rps-fighter-info">
+                    <strong>{{ rps.player1.name }}</strong>
+                    <span class="rps-fighter-tag">{{ rps.player1.id === mySocketId ? '(TÚ)' : '(AGENTE 1)' }}</span>
+                  </div>
+                  <div class="rps-score-digit">{{ rps.player1Score }}</div>
+                </div>
+
+                <div class="rps-match-center">
+                  <span class="rps-round-pill">RONDA {{ rps.currentRound }}</span>
+                  <span class="rps-target-wins">PRIMERO A {{ rps.targetWins }} VICTORIAS</span>
+                  <span class="rps-vs-badge">VS</span>
+                </div>
+
+                <div class="rps-fighter-box fighter-right" [class.lead]="rps.player2Score > rps.player1Score" [class.is-me]="rps.player2.id === mySocketId">
+                  <div class="rps-score-digit">{{ rps.player2Score }}</div>
+                  <div class="rps-fighter-info text-right">
+                    <strong>{{ rps.player2.name }}</strong>
+                    <span class="rps-fighter-tag">{{ rps.player2.id === mySocketId ? '(TÚ)' : (rps.player2.isBot ? '(BOT)' : '(AGENTE 2)') }}</span>
+                  </div>
+                  <span class="rps-fighter-avatar">{{ rps.player2.avatar }}</span>
+                </div>
+              </div>
+
+              <!-- Arena de Choque y Animación -->
+              <div class="rps-arena cyber-panel">
+                <div class="rps-hand-display" [class.revealed]="rps.isRoundRevealed" [class.locked]="rps.player1Locked && !rps.isRoundRevealed">
+                  <span class="rps-big-emoji" *ngIf="rps.isRoundRevealed">
+                    {{ rps.player1Choice === 'ROCK' ? '🪨' : rps.player1Choice === 'PAPER' ? '📄' : '✂️' }}
+                  </span>
+                  <span class="rps-big-emoji pulse-lock" *ngIf="!rps.isRoundRevealed && rps.player1Locked">🔒</span>
+                  <span class="rps-big-emoji wait-hand" *ngIf="!rps.player1Locked">⏳</span>
+                  <strong class="rps-hand-label">
+                    {{ rps.isRoundRevealed ? (rps.player1Choice === 'ROCK' ? 'PIEDRA' : rps.player1Choice === 'PAPER' ? 'PAPEL' : 'TIJERA') : (rps.player1Locked ? 'ELECCIÓN LISTA' : 'PENSANDO...') }}
+                  </strong>
+                </div>
+
+                <div class="rps-clash-divider">
+                  <span class="rps-lightning">⚡</span>
+                  <span class="rps-status-msg" *ngIf="rps.roundMessage">{{ rps.roundMessage }}</span>
+                  <span class="rps-waiting-msg" *ngIf="!rps.roundMessage">
+                    {{ (!rps.player1Locked || !rps.player2Locked) ? 'Esperando jugadas...' : '¡Revelando choque!' }}
+                  </span>
+                </div>
+
+                <div class="rps-hand-display" [class.revealed]="rps.isRoundRevealed" [class.locked]="rps.player2Locked && !rps.isRoundRevealed">
+                  <span class="rps-big-emoji" *ngIf="rps.isRoundRevealed">
+                    {{ rps.player2Choice === 'ROCK' ? '🪨' : rps.player2Choice === 'PAPER' ? '📄' : '✂️' }}
+                  </span>
+                  <span class="rps-big-emoji pulse-lock" *ngIf="!rps.isRoundRevealed && rps.player2Locked">🔒</span>
+                  <span class="rps-big-emoji wait-hand" *ngIf="!rps.player2Locked">⏳</span>
+                  <strong class="rps-hand-label">
+                    {{ rps.isRoundRevealed ? (rps.player2Choice === 'ROCK' ? 'PIEDRA' : rps.player2Choice === 'PAPER' ? 'PAPEL' : 'TIJERA') : (rps.player2Locked ? 'ELECCIÓN LISTA' : 'PENSANDO...') }}
+                  </strong>
+                </div>
+              </div>
+
+              <!-- Botones de Elección de Jugada -->
+              <div class="rps-selection-section" *ngIf="!rps.isCompleted && !rps.isRoundRevealed">
+                <span class="rps-prompt-text">
+                  {{ isMyTurnInRps() ? 'Selecciona tu jugada secreta para esta ronda:' : 'Esperando a que ambos duelistas confirmen su jugada...' }}
+                </span>
+
+                <div class="rps-cards-row">
+                  <button 
+                    class="rps-choice-btn btn-rock" 
+                    [class.selected]="getMyRpsChoice() === 'ROCK'"
+                    [disabled]="!isMyTurnInRps()"
+                    (click)="chooseRps('ROCK')">
+                    <span class="rps-btn-icon">🪨</span>
+                    <strong class="rps-btn-title">PIEDRA</strong>
+                    <small class="rps-btn-desc">Núcleo Cinético • Vence a Tijera</small>
+                  </button>
+
+                  <button 
+                    class="rps-choice-btn btn-paper" 
+                    [class.selected]="getMyRpsChoice() === 'PAPER'"
+                    [disabled]="!isMyTurnInRps()"
+                    (click)="chooseRps('PAPER')">
+                    <span class="rps-btn-icon">📄</span>
+                    <strong class="rps-btn-title">PAPEL</strong>
+                    <small class="rps-btn-desc">Escudo de Datos • Vence a Piedra</small>
+                  </button>
+
+                  <button 
+                    class="rps-choice-btn btn-scissors" 
+                    [class.selected]="getMyRpsChoice() === 'SCISSORS'"
+                    [disabled]="!isMyTurnInRps()"
+                    (click)="chooseRps('SCISSORS')">
+                    <span class="rps-btn-icon">✂️</span>
+                    <strong class="rps-btn-title">TIJERA</strong>
+                    <small class="rps-btn-desc">Cuchilla Láser • Vence a Papel</small>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Banner de Victoria Final -->
+              <div class="rps-victory-banner cyber-panel" *ngIf="rps.isCompleted">
+                <span class="trophy-pulse">🏆</span>
+                <div>
+                  <h3>¡{{ rps.winner }} HA GANADO EL DUELO TÁCTICO!</h3>
+                  <p>El escudo se ha quebrado. ¡Compuerta de escape final desbloqueada (+600 XP)!</p>
+                </div>
+              </div>
+
+              <!-- Controles de Duelo -->
+              <div class="duel-controls-bar">
+                <button class="cyber-btn secondary small-btn" (click)="resetRps()">
+                  🔄 Reiniciar Duelo RPS
+                </button>
+              </div>
+
+            </div>
           </div>
 
           <!-- 6. PUZZLE: TERMINAL DE CLAVE MAESTRA (MASTER_PHRASE) -->
@@ -611,21 +1805,40 @@
               </button>
             </div>
           </div>
+
         </section>
       </div>
 
       <!-- COLUMNA DERECHA: ESTADO DEL EQUIPO & CANAL DE RADIO EN VIVO -->
       <div class="comms-side-column">
         
-        <!-- ESTADO DEL EQUIPO -->
-        <div class="cyber-panel team-panel">
-          <h4 class="side-title">👥 EQUIPO EN MISIÓN</h4>
-          <div class="team-players-list">
-            <div *ngFor="let pl of roomState.players" class="team-player-card" [class.is-current]="pl.id === mySocketId">
+        <!-- MARCADOR COMPETITIVO EN VIVO (RANKING PvP) -->
+        <div class="cyber-panel pvp-leaderboard-panel">
+          <div class="pvp-panel-header">
+            <h4 class="side-title">🏆 RANKING EN VIVO (PvP)</h4>
+            <span class="pvp-live-pulse">🔴 EN VIVO</span>
+          </div>
+          
+          <div class="team-players-list pvp-players-list">
+            <div 
+              *ngFor="let pl of (roomState.leaderboard || roomState.players)" 
+              class="team-player-card pvp-rank-row" 
+              [class.is-current]="pl.id === mySocketId"
+              [class.is-leader]="pl.rank === 1">
+              
+              <div class="pvp-rank-col">
+                <span class="pvp-badge">{{ getRankBadge(pl.rank || 1) }}</span>
+              </div>
               <span class="pl-avatar">{{ pl.avatar }}</span>
               <div class="pl-info">
-                <strong>{{ pl.name }} <span *ngIf="pl.id === mySocketId">(Tú)</span></strong>
-                <small class="pl-status">🟢 Enlace Conectado</small>
+                <div class="pl-name-row">
+                  <strong>{{ pl.name }}</strong>
+                  <span *ngIf="pl.id === mySocketId" class="badge-you">(Tú)</span>
+                  <span *ngIf="pl.rank === 1" class="badge-mvp">👑 MVP</span>
+                </div>
+                <div class="pl-score-bar">
+                  <span class="pl-points-tag">⭐ {{ pl.score || 0 }} PTS</span>
+                </div>
               </div>
             </div>
           </div>
@@ -649,6 +1862,7 @@
               </div>
             </div>
           </div>
+
 
           <!-- Input de Chat -->
           <div class="chat-input-bar">
@@ -697,9 +1911,35 @@
         </div>
       </div>
 
-      <div class="victory-actions" *ngIf="isHost">
-        <button class="cyber-btn success restart-btn" (click)="restartMission()">
+      <!-- PODIO DE COMPETICIÓN PVP (RANKING FINAL DE LA PARTIDA) -->
+      <div class="pvp-final-podium-section">
+        <h3 class="podium-title">🏆 PODIO Y RANKING COMPETITIVO DE LA MISIÓN</h3>
+        <p class="podium-subtitle">Clasificación individual por agilidad táctica y resolución de enigmas</p>
+
+        <div class="pvp-podium-cards" *ngIf="roomState.leaderboard && roomState.leaderboard.length > 0">
+          <div 
+            *ngFor="let p of roomState.leaderboard; let i = index" 
+            class="podium-agent-card" 
+            [class.rank-1]="i === 0" 
+            [class.rank-2]="i === 1"
+            [class.rank-3]="i === 2"
+            [class.is-mine]="p.id === mySocketId">
+            <div class="podium-crown" *ngIf="i === 0">👑 CAMPEÓN MVP</div>
+            <div class="podium-rank-badge">{{ getRankBadge(p.rank || (i + 1)) }}</div>
+            <span class="podium-avatar">{{ p.avatar }}</span>
+            <strong class="podium-name">{{ p.name }} <span *ngIf="p.id === mySocketId" class="mine-tag">(Tú)</span></strong>
+            <div class="podium-score-tag">⭐ {{ p.score || 0 }} PTS</div>
+            <span class="podium-status-sub">{{ i === 0 ? '🏆 Máximo Puntuador' : (i === 1 ? '🥈 Subcampeón' : '🥉 Finalista') }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="victory-actions">
+        <button class="cyber-btn success restart-btn" *ngIf="isHost" (click)="restartMission()">
           🔄 Jugar Otra Misión de Escape
+        </button>
+        <button class="cyber-btn secondary" (click)="leaveRoom()">
+          🏠 Salir al Menú Principal
         </button>
       </div>
 
@@ -720,9 +1960,25 @@
         Las compuertas se han sellado permanentemente y el tiempo se agotó.
       </p>
 
-      <div class="victory-actions" *ngIf="isHost">
-        <button class="cyber-btn alert restart-btn" (click)="restartMission()">
+      <!-- RANKING DE PUNTOS ACUMULADOS EN LA PARTIDA -->
+      <div class="pvp-final-podium-section" *ngIf="roomState.leaderboard && roomState.leaderboard.length > 0">
+        <h3 class="podium-title">📊 PUNTUACIONES INDIVIDUALES</h3>
+        <div class="pvp-podium-cards">
+          <div *ngFor="let p of roomState.leaderboard; let i = index" class="podium-agent-card" [class.is-mine]="p.id === mySocketId">
+            <div class="podium-rank-badge">{{ getRankBadge(p.rank || (i + 1)) }}</div>
+            <span class="podium-avatar">{{ p.avatar }}</span>
+            <strong class="podium-name">{{ p.name }} <span *ngIf="p.id === mySocketId" class="mine-tag">(Tú)</span></strong>
+            <div class="podium-score-tag">⭐ {{ p.score || 0 }} PTS</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="victory-actions">
+        <button class="cyber-btn alert restart-btn" *ngIf="isHost" (click)="restartMission()">
           🔄 Reintentar Misión
+        </button>
+        <button class="cyber-btn secondary" (click)="leaveRoom()">
+          🏠 Salir al Menú Principal
         </button>
       </div>
 
@@ -731,5 +1987,39 @@
       </p>
     </div>
   </main>
+
+
+  <!-- ========================================================================= -->
+  <!-- REPRODUCTOR HOLOGRÁFICO DE MÚSICA OFICIAL (YOUTUBE) -->
+  <!-- ========================================================================= -->
+  <div class="cyber-music-widget cyber-panel" [class.minimized]="isMusicMinimized">
+    <div class="music-widget-header">
+      <div class="music-title-box">
+        <span class="music-note-icon">🎵</span>
+        <div class="music-text-meta" *ngIf="!isMusicMinimized">
+          <span class="music-tag">BANDA SONORA OFICIAL</span>
+          <strong class="music-track-name">{{ currentYoutubeTrackTitle || 'Banda Sonora del Escenario' }}</strong>
+        </div>
+      </div>
+      <div class="music-controls">
+        <button class="music-btn" (click)="toggleMusicMute()" [title]="isMusicMuted ? 'Activar Música' : 'Silenciar Música'">
+          {{ isMusicMuted ? '🔇' : '🔊' }}
+        </button>
+        <button class="music-btn" (click)="toggleMusicMinimize()" [title]="isMusicMinimized ? 'Expandir' : 'Minimizar'">
+          {{ isMusicMinimized ? '▲' : '▼' }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Iframe invisible de YouTube con la canción en bucle -->
+    <iframe 
+      id="youtubeMusicFrame"
+      *ngIf="currentYoutubeUrl && !isMusicMuted"
+      [src]="currentYoutubeUrl" 
+      class="yt-hidden-frame" 
+      allow="autoplay; encrypted-media" 
+      tabindex="-1">
+    </iframe>
+  </div>
 
 </div>

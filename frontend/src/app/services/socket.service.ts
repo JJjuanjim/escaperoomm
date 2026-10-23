@@ -1,7 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
 import { BehaviorSubject, Subject, Observable } from 'rxjs';
-import { EscapeRoomState, ChatMessage, ScenarioInfo, RejoinRequest } from '../models/escape.model';
+import { EscapeRoomState, ChatMessage, ScenarioInfo, RejoinRequest, ActiveLobby } from '../models/escape.model';
 
 @Injectable({
   providedIn: 'root'
@@ -44,7 +44,25 @@ export class SocketService {
   private rejoinRejectedSubject = new Subject<string>();
   public rejoinRejected$ = this.rejoinRejectedSubject.asObservable();
 
-  constructor() {
+  private reconnectSuccessSubject = new Subject<{ roomCode: string }>();
+  public reconnectSuccess$ = this.reconnectSuccessSubject.asObservable();
+
+  private reconnectFailedSubject = new Subject<{ message: string }>();
+  public reconnectFailed$ = this.reconnectFailedSubject.asObservable();
+
+  private activeLobbiesSubject = new BehaviorSubject<ActiveLobby[]>([]);
+  public activeLobbies$ = this.activeLobbiesSubject.asObservable();
+
+  private syncMissionMusicSubject = new Subject<{
+    scenarioId: string;
+    youtubeVideoId: string;
+    trackTitle: string;
+    missionStartedAt: number;
+    startSeconds: number;
+  }>();
+  public syncMissionMusic$ = this.syncMissionMusicSubject.asObservable();
+
+  constructor(private ngZone: NgZone) {
     this.initSocket();
   }
 
@@ -60,49 +78,94 @@ export class SocketService {
     });
 
     this.socket.on('connect', () => {
-      console.log('⚡ Conectado al servidor de Escape Room:', this.socket?.id);
-      this.getScenarios();
+      this.ngZone.run(() => {
+        console.log('⚡ Conectado al servidor de Escape Room:', this.socket?.id);
+        this.getScenarios();
+        this.fetchActiveLobbies();
+      });
+    });
+
+    this.socket.on('active_lobbies_update', (lobbies: ActiveLobby[]) => {
+      this.ngZone.run(() => {
+        this.activeLobbiesSubject.next(lobbies || []);
+      });
+    });
+
+    this.socket.on('sync_mission_music', (data: any) => {
+      this.ngZone.run(() => {
+        this.syncMissionMusicSubject.next(data);
+      });
     });
 
     this.socket.on('room_state_update', (state: EscapeRoomState) => {
-      this.roomStateSubject.next(state);
+      this.ngZone.run(() => {
+        this.roomStateSubject.next(state);
+      });
     });
 
     this.socket.on('scenarios_list', (list: ScenarioInfo[]) => {
-      this.scenariosListSubject.next(list);
+      this.ngZone.run(() => {
+        this.scenariosListSubject.next(list);
+      });
     });
 
     this.socket.on('timer_tick', (data: { timeRemaining: number }) => {
-      this.timerTickSubject.next(data.timeRemaining);
-      const current = this.roomStateSubject.getValue();
-      if (current) {
-        current.timeRemaining = data.timeRemaining;
-        this.roomStateSubject.next(current);
-      }
+      this.ngZone.run(() => {
+        this.timerTickSubject.next(data.timeRemaining);
+        const current = this.roomStateSubject.getValue();
+        if (current) {
+          current.timeRemaining = data.timeRemaining;
+          this.roomStateSubject.next(current);
+        }
+      });
     });
 
     this.socket.on('rejoin_request_received', (req: RejoinRequest) => {
-      this.rejoinRequestSubject.next(req);
+      this.ngZone.run(() => {
+        this.rejoinRequestSubject.next(req);
+      });
     });
 
     this.socket.on('rejoin_pending_approval', (data: { message: string }) => {
-      this.rejoinPendingSubject.next(data.message);
+      this.ngZone.run(() => {
+        this.rejoinPendingSubject.next(data.message);
+      });
     });
 
     this.socket.on('rejoin_approved', (data: { roomCode: string }) => {
-      this.rejoinApprovedSubject.next(data);
+      this.ngZone.run(() => {
+        this.rejoinApprovedSubject.next(data);
+      });
     });
 
     this.socket.on('rejoin_rejected', (data: { message: string }) => {
-      this.rejoinRejectedSubject.next(data.message);
+      this.ngZone.run(() => {
+        this.rejoinRejectedSubject.next(data.message);
+      });
+    });
+
+    this.socket.on('reconnect_success', (data: { roomCode: string }) => {
+      this.ngZone.run(() => {
+        this.reconnectSuccessSubject.next(data);
+      });
+    });
+
+    this.socket.on('reconnect_failed', (data: { message: string }) => {
+      this.ngZone.run(() => {
+        this.reconnectFailedSubject.next(data);
+      });
     });
 
     this.socket.on('new_chat_message', (msg: ChatMessage) => {
-      this.newChatMessageSubject.next(msg);
+      this.ngZone.run(() => {
+        this.newChatMessageSubject.next(msg);
+      });
     });
 
     this.socket.on('escape_error', (data: { message: string }) => {
-      this.errorSubject.next(data.message);
+      this.ngZone.run(() => {
+        this.errorSubject.next(data.message);
+      });
     });
   }
 
@@ -115,6 +178,10 @@ export class SocketService {
     this.socket?.emit('get_scenarios');
   }
 
+  fetchActiveLobbies(): void {
+    this.socket?.emit('get_active_lobbies');
+  }
+
   createRoom(playerName: string, avatar: string, scenarioId?: string): void {
     this.socket?.emit('create_room', { playerName, avatar, scenarioId });
   }
@@ -125,6 +192,14 @@ export class SocketService {
 
   joinRoom(roomCode: string, playerName: string, avatar: string): void {
     this.socket?.emit('join_room', { roomCode: roomCode.trim().toUpperCase(), playerName, avatar });
+  }
+
+  reconnectSession(roomCode: string, playerName: string, avatar: string, playerId?: string): void {
+    this.socket?.emit('reconnect_session', { roomCode: roomCode.trim().toUpperCase(), playerName, avatar, playerId });
+  }
+
+  leaveRoom(roomCode: string): void {
+    this.socket?.emit('leave_room', { roomCode: roomCode.trim().toUpperCase() });
   }
 
   respondRejoinRequest(roomCode: string, targetSocketId: string, playerName: string, avatar: string, approved: boolean): void {
@@ -171,14 +246,94 @@ export class SocketService {
     this.socket?.emit('send_chat_message', { roomCode, text });
   }
 
+  moveTilePuzzle(roomCode: string, tileIndex: number): void {
+    this.socket?.emit('move_tile_puzzle', { roomCode, tileIndex });
+  }
+
+  placeJigsawPiece(roomCode: string, pieceId: number, slotIndex: number): void {
+    this.socket?.emit('place_jigsaw_piece', { roomCode, pieceId, slotIndex });
+  }
+
+  removeJigsawPiece(roomCode: string, slotIndex: number): void {
+    this.socket?.emit('remove_jigsaw_piece', { roomCode, slotIndex });
+  }
+
+  resetJigsaw(roomCode: string): void {
+    this.socket?.emit('reset_jigsaw', { roomCode });
+  }
+
+  moveTicTacToe(roomCode: string, cellIndex: number): void {
+    this.socket?.emit('move_tictactoe', { roomCode, cellIndex });
+  }
+
+  resetTicTacToe(roomCode: string): void {
+    this.socket?.emit('reset_tictactoe', { roomCode });
+  }
+
+  makeRpsChoice(roomCode: string, choice: 'ROCK' | 'PAPER' | 'SCISSORS'): void {
+    this.socket?.emit('make_rps_choice', { roomCode, choice });
+  }
+
+  resetRps(roomCode: string): void {
+    this.socket?.emit('reset_rps', { roomCode });
+  }
+
   restartMission(roomCode: string): void {
     this.socket?.emit('restart_mission', { roomCode });
+  }
+
+  // --- Endpoints de Autenticación con Correo (Gmail) ---
+  async registerAgent(data: { email: string; password: string; codename: string; avatar?: string; rank?: string }): Promise<any> {
+    const res = await fetch(`${this.getServerUrl()}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return await res.json();
+  }
+
+  async verifyCode(email: string, code: string): Promise<any> {
+    const res = await fetch(`${this.getServerUrl()}/api/auth/verify-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code }),
+    });
+    return await res.json();
+  }
+
+  async loginAgent(email: string, password: string): Promise<any> {
+    const res = await fetch(`${this.getServerUrl()}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    return await res.json();
+  }
+
+  async resendCode(email: string): Promise<any> {
+    const res = await fetch(`${this.getServerUrl()}/api/auth/resend-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+    return await res.json();
   }
 
   async fetchLeaderboard(): Promise<any[]> {
     try {
       const res = await fetch(`${this.getServerUrl()}/api/missions/leaderboard`);
-      return await res.json();
+      const data = await res.json();
+      return data?.leaderboard || data || [];
+    } catch {
+      return [];
+    }
+  }
+
+  async fetchUsersLeaderboard(): Promise<any[]> {
+    try {
+      const res = await fetch(`${this.getServerUrl()}/api/missions/users-leaderboard`);
+      const data = await res.json();
+      return data?.users || [];
     } catch {
       return [];
     }

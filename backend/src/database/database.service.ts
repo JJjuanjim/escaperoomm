@@ -18,6 +18,7 @@ export class DatabaseService {
     timeRemaining: number;
     playersCount: number;
     playersNames: string;
+    playersDetails?: Array<{ name: string; score: number; rank: number }>;
   }) {
     try {
       const record = await this.prisma.escapeMission.create({
@@ -33,10 +34,55 @@ export class DatabaseService {
         }
       });
       console.log(`💾 [Prisma ORM] Misión ${data.roomCode} guardada con éxito (ID: ${record.id})`);
+
+      // Actualizar puntos XP y estadísticas de los usuarios registrados en PostgreSQL
+      if (data.playersDetails && data.playersDetails.length > 0) {
+        for (const p of data.playersDetails) {
+          try {
+            await this.prisma.user.updateMany({
+              where: { codename: p.name },
+              data: {
+                xpPoints: { increment: p.score || 0 },
+                missionsPlayed: { increment: 1 },
+                missionsWon: { increment: data.status === 'GAME_WON' ? 1 : 0 }
+              }
+            });
+          } catch (e: any) {
+            console.warn(`No se pudo actualizar XP para usuario ${p.name}:`, e.message);
+          }
+        }
+      }
+
       return record;
     } catch (err: any) {
       console.error('⚠️ [Prisma ORM] Error al guardar misión:', err.message);
       return null;
+    }
+  }
+
+  async getUserLeaderboard(limit = 10) {
+    try {
+      return await this.prisma.user.findMany({
+        orderBy: [
+          { xpPoints: 'desc' },
+          { missionsWon: 'desc' },
+          { missionsPlayed: 'desc' }
+        ],
+        select: {
+          id: true,
+          codename: true,
+          avatar: true,
+          rank: true,
+          xpPoints: true,
+          missionsPlayed: true,
+          missionsWon: true,
+          createdAt: true
+        },
+        take: limit
+      });
+    } catch (err: any) {
+      console.error('⚠️ [Prisma ORM] Error al consultar User Leaderboard:', err.message);
+      return [];
     }
   }
 

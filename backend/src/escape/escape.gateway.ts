@@ -29,6 +29,7 @@ export class EscapeGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleConnection(client: Socket) {
     console.log(`[NestJS EscapeRoom Gateway] Conectado: ${client.id}`);
+    client.emit('active_lobbies_update', this.escapeService.getActiveLobbies());
   }
 
   handleDisconnect(client: Socket) {
@@ -41,6 +42,16 @@ export class EscapeGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.broadcastRoomState(room);
       }
     });
+    this.broadcastActiveLobbies();
+  }
+
+  private broadcastActiveLobbies() {
+    this.server.emit('active_lobbies_update', this.escapeService.getActiveLobbies());
+  }
+
+  @SubscribeMessage('get_active_lobbies')
+  handleGetActiveLobbies(@ConnectedSocket() client: Socket) {
+    client.emit('active_lobbies_update', this.escapeService.getActiveLobbies());
   }
 
   private broadcastRoomState(room: any) {
@@ -113,6 +124,7 @@ export class EscapeGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join(room.code);
 
     console.log(`[NestJS EscapeRoom] Sala Creada: ${room.code} (${room.scenario.name}) por ${hostPlayer.name}`);
+    this.broadcastActiveLobbies();
     this.broadcastRoomState(room);
   }
 
@@ -120,6 +132,7 @@ export class EscapeGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleChangeScenario(@MessageBody() data: any) {
     const room = this.escapeService.changeScenario(data.roomCode, data.scenarioId);
     if (room) {
+      this.broadcastActiveLobbies();
       this.broadcastRoomState(room);
     }
   }
@@ -158,7 +171,71 @@ export class EscapeGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.join(result.room.code);
     console.log(`[NestJS EscapeRoom] Jugador Unido: ${player.name} a sala ${result.room.code}`);
+    this.broadcastActiveLobbies();
     this.broadcastRoomState(result.room);
+  }
+
+  @SubscribeMessage('reconnect_session')
+  handleReconnectSession(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const roomCode = data?.roomCode?.trim()?.toUpperCase();
+    const playerName = data?.playerName?.trim();
+    const room = this.escapeService.getRoom(roomCode);
+
+    if (!room) {
+      client.emit('reconnect_failed', { message: 'La misión ya no está activa en el servidor.' });
+      return;
+    }
+
+    const existingIndex = room.players.findIndex(
+      (p: any) => p.name.trim().toLowerCase() === playerName?.toLowerCase() || p.id === data?.playerId
+    );
+
+    if (existingIndex !== -1) {
+      const oldId = room.players[existingIndex].id;
+      room.players[existingIndex].id = client.id;
+      room.players[existingIndex].avatar = data?.avatar || room.players[existingIndex].avatar;
+      room.players[existingIndex].isConnected = true;
+
+      if (room.hostId === oldId || room.players[existingIndex].isHost) {
+        room.hostId = client.id;
+        room.players[existingIndex].isHost = true;
+      }
+
+      client.join(room.code);
+      console.log(`[NestJS EscapeRoom] 🔄 Reconexión automática de ${playerName} a sala ${room.code} (Nuevo socket: ${client.id})`);
+
+      client.emit('reconnect_success', { roomCode: room.code });
+      this.broadcastRoomState(room);
+    } else {
+      if (room.status === 'LOBBY' && room.players.length < room.settings.maxPlayers) {
+        const player = {
+          id: client.id,
+          name: playerName || 'Agente_Reconectado',
+          avatar: data?.avatar || '👨‍🚀',
+          isBot: false,
+          isConnected: true
+        };
+        room.players.push(player);
+        client.join(room.code);
+        client.emit('reconnect_success', { roomCode: room.code });
+        this.broadcastRoomState(room);
+      } else {
+        client.emit('reconnect_failed', { message: 'No se encontró sesión previa registrada.' });
+      }
+    }
+  }
+
+  @SubscribeMessage('leave_room')
+  handleLeaveRoom(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const roomCode = data?.roomCode?.trim()?.toUpperCase();
+    if (roomCode) {
+      this.escapeService.leaveRoom(roomCode, client.id);
+      client.leave(roomCode);
+      const room = this.escapeService.getRoom(roomCode);
+      if (room) {
+        this.broadcastRoomState(room);
+      }
+    }
   }
 
   @SubscribeMessage('respond_rejoin_request')
@@ -214,6 +291,16 @@ export class EscapeGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
+    // Emitir sincronización de música oficial para todos los agentes de la sala
+    this.server.to(result.room.code).emit('sync_mission_music', {
+      scenarioId: result.room.scenario.id,
+      youtubeVideoId: result.room.scenario.youtubeVideoId,
+      trackTitle: result.room.scenario.trackTitle,
+      missionStartedAt: result.room.missionStartedAt,
+      startSeconds: 0
+    });
+
+    this.broadcastActiveLobbies();
     this.broadcastRoomState(result.room);
     this.startGlobalTimer(result.room.code);
 
@@ -252,25 +339,138 @@ export class EscapeGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  @SubscribeMessage('move_tile_puzzle')
+  handleMoveTile(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const result = this.escapeService.moveTilePuzzle(data.roomCode, client.id, data.tileIndex);
+    if (result.error) {
+      client.emit('escape_error', { message: result.error });
+      return;
+    }
+
+    if (result.room) {
+      this.broadcastRoomState(result.room);
+
+      // Si el siguiente turno le corresponde a un bot cooperativo, simular su movimiento
+      if (result.nextPlayerIsBot) {
+        setTimeout(() => {
+          const botResult = this.escapeService.makeBotTileMove(data.roomCode);
+          if (botResult?.room) {
+            this.broadcastRoomState(botResult.room);
+          }
+        }, 1200);
+      }
+    }
+  }
+
+  @SubscribeMessage('place_jigsaw_piece')
+  handlePlaceJigsaw(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const result = this.escapeService.placeJigsawPiece(data.roomCode, client.id, data.pieceId, data.slotIndex);
+    if (result.error) {
+      client.emit('escape_error', { message: result.error });
+      return;
+    }
+
+    if (result.room) {
+      this.broadcastRoomState(result.room);
+    }
+  }
+
+  @SubscribeMessage('remove_jigsaw_piece')
+  handleRemoveJigsaw(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const result = this.escapeService.removeJigsawPiece(data.roomCode, client.id, data.slotIndex);
+    if (result.room) {
+      this.broadcastRoomState(result.room);
+    }
+  }
+
+  @SubscribeMessage('reset_jigsaw')
+  handleResetJigsaw(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const room = this.escapeService.resetJigsawPuzzle(data.roomCode, client.id);
+    if (room) {
+      this.broadcastRoomState(room);
+    }
+  }
+
+  @SubscribeMessage('move_tictactoe')
+  handleMoveTicTacToe(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const result = this.escapeService.makeTicTacToeMove(data.roomCode, client.id, data.cellIndex);
+    if (result.error) {
+      client.emit('escape_error', { message: result.error });
+      return;
+    }
+
+    if (result.room) {
+      this.broadcastRoomState(result.room);
+
+      if (result.nextIsBot) {
+        setTimeout(() => {
+          const botResult = this.escapeService.makeBotTicTacToeMove(data.roomCode);
+          if (botResult?.room) {
+            this.broadcastRoomState(botResult.room);
+          }
+        }, 1000);
+      }
+    }
+  }
+
+  @SubscribeMessage('reset_tictactoe')
+  handleResetTicTacToe(@MessageBody() data: any) {
+    const room = this.escapeService.resetTicTacToe(data.roomCode);
+    if (room) {
+      this.broadcastRoomState(room);
+    }
+  }
+
+  @SubscribeMessage('make_rps_choice')
+  handleMakeRpsChoice(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const result = this.escapeService.makeRpsChoice(data.roomCode, client.id, data.choice);
+    if (result.error) {
+      client.emit('escape_error', { message: result.error });
+      return;
+    }
+
+    if (result.room) {
+      this.broadcastRoomState(result.room);
+
+      // Si la ronda fue resuelta y aún quedan rondas por jugar, avanzar automáticamente tras 2.2 segundos
+      if (result.resolved && result.shouldAdvance) {
+        setTimeout(() => {
+          const updated = this.escapeService.nextRpsRound(data.roomCode);
+          if (updated) {
+            this.broadcastRoomState(updated);
+          }
+        }, 2200);
+      }
+    }
+  }
+
+  @SubscribeMessage('reset_rps')
+  handleResetRps(@MessageBody() data: any) {
+    const room = this.escapeService.resetRpsDuel(data.roomCode);
+    if (room) {
+      this.broadcastRoomState(room);
+    }
+  }
+
   @SubscribeMessage('push_cable_color')
-  handlePushCable(@MessageBody() data: any) {
-    const room = this.escapeService.pushCableColor(data.roomCode, data.color);
+  handlePushCable(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const room = this.escapeService.pushCableColor(data.roomCode, client.id, data.color);
     if (room) {
       this.broadcastRoomState(room);
     }
   }
 
   @SubscribeMessage('remove_cable_color')
-  handleRemoveCable(@MessageBody() data: any) {
-    const room = this.escapeService.removeCableColor(data.roomCode, data.index);
+  handleRemoveCable(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const room = this.escapeService.removeCableColor(data.roomCode, client.id, data.index);
     if (room) {
       this.broadcastRoomState(room);
     }
   }
 
   @SubscribeMessage('reset_cable_colors')
-  handleResetCables(@MessageBody() data: any) {
-    const room = this.escapeService.resetCableColors(data.roomCode);
+  handleResetCables(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+    const room = this.escapeService.resetCableColors(data.roomCode, client.id);
     if (room) {
       this.broadcastRoomState(room);
     }
@@ -326,6 +526,14 @@ export class EscapeGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleRestartMission(@MessageBody() data: any) {
     const room = this.escapeService.restartMission(data.roomCode);
     if (room) {
+      this.server.to(room.code).emit('sync_mission_music', {
+        scenarioId: room.scenario.id,
+        youtubeVideoId: room.scenario.youtubeVideoId,
+        trackTitle: room.scenario.trackTitle,
+        missionStartedAt: room.missionStartedAt,
+        startSeconds: 0
+      });
+      this.broadcastActiveLobbies();
       this.broadcastRoomState(room);
     }
   }

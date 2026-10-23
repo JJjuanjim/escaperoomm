@@ -16,7 +16,10 @@ frontend/.angular/
 # Variables de entorno y secretos
 .env
 .env.*
+**/.env
+**/.env.*
 !.env.example
+!**/.env.example
 *.local
 
 # Logs

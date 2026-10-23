@@ -37,12 +37,22 @@ echo    SERVICIOS INICIADOS CON SOPORTE PARA WI-FI Y CELULARES
 echo ==============================================================================
 echo - En tu propia PC: http://localhost:4200
 echo - Backend Socket:   http://localhost:3002
+echo Esperando a que Angular compile y se conecte a la base de datos...
+echo (La primera vez toma alrededor de 25-35 segundos, por favor no cierres las ventanas negras)
 echo.
-echo Esperando compilacion y abriendo el navegador (10 segundos)...
-timeout /t 10 /nobreak >nul
+timeout /t 25 /nobreak >nul
 start http://localhost:4200
 
 echo.
-echo Para detener todos los servicios, ejecuta 'detener_proyecto.bat'
-echo Presiona cualquier tecla para cerrar esta ventana informativa.
-pause >nul
+echo ==============================================================================
+echo    SISTEMA EN LINEA
+echo ==============================================================================
+echo - En tu PC abre:          http://localhost:4200
+echo - Para otros en el Wi-Fi: http://10.75.29.73:4200
+echo - Swagger API Backend:    http://localhost:3002/api/docs
+echo.
+echo NOTA: Manten abiertas las dos ventanas negras minimizadas mientras juegues.
+echo Para detener todo, ejecuta 'detener_proyecto.bat'.
+echo.
+pause
+

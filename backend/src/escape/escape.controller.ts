@@ -218,6 +218,23 @@ export class EscapeController {
     };
   }
 
+  @Get('missions/users-leaderboard')
+  @ApiOperation({
+    summary: 'Consultar Salón de la Fama de Usuarios/Agentes en PostgreSQL',
+    description: 'Retorna el ranking individual de agentes ordenados por puntos XP ganados.',
+  })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  @ApiOkResponse({ description: 'Ranking de agentes obtenido de PostgreSQL' })
+  async getUsersLeaderboard(@Query('limit') limit?: number) {
+    const lim = Math.max(1, Math.min(50, Number(limit) || 10));
+    const users = await this.dbService.getUserLeaderboard(lim);
+    return {
+      success: true,
+      total: users.length,
+      users,
+    };
+  }
+
   @Get('missions/history')
   @ApiOperation({
     summary: 'Consultar historial completo de misiones en PostgreSQL',
