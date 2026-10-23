@@ -319,6 +319,24 @@ export class SocketService {
     return await res.json();
   }
 
+  async fetchRegisteredUsers(): Promise<any[]> {
+    try {
+      const res = await fetch(`${this.getServerUrl()}/api/auth/users`);
+      return await res.json();
+    } catch {
+      return [];
+    }
+  }
+
+  async loadAgentById(id: number): Promise<any> {
+    const res = await fetch(`${this.getServerUrl()}/api/auth/load-agent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    });
+    return await res.json();
+  }
+
   async fetchLeaderboard(): Promise<any[]> {
     try {
       const res = await fetch(`${this.getServerUrl()}/api/missions/leaderboard`);

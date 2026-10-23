@@ -340,34 +340,70 @@
   <!-- ========================================================================= -->
   <!-- BARRA SUPERIOR / TOP NAVIGATION HUD -->
   <!-- ========================================================================= -->
+    <!-- ========================================================================= -->
+  <!-- 0. PANTALLA EXCLUSIVA DE CONTROL DE ACCESO / LOGIN & SELECCIÓN DE USUARIO -->
   <!-- ========================================================================= -->
-  <!-- 0. PANTALLA EXCLUSIVA DE CONTROL DE ACCESO / LOGIN FIRST -->
-  <!-- ========================================================================= -->
-  <main class="login-gate-screen" *ngIf="!agentProfile && !roomState">
-    <div class="login-gate-card cyber-panel">
+  <main class="login-gate-screen" *ngIf="currentView === 'LOGIN' && !roomState">
+    <div class="login-gate-card cyber-panel login-gate-card-wide">
       
       <div class="login-gate-header">
         <div class="gate-logo-ring">
           <span class="gate-logo-icon">🛡️</span>
         </div>
-        <span class="gate-badge">CONTROL DE ACCESO DE SEGURIDAD</span>
+        <span class="gate-badge">CONTROL DE ACCESO CENTRAL • POSTGRESQL 18</span>
         <h2 class="gate-title">ESCAPE PROTOCOL 2026</h2>
-        <p class="gate-subtitle">Identifícate con tu cuenta de Agente para acceder a las operaciones tácticas y salas multijugador.</p>
+        <p class="gate-subtitle">Carga tu perfil de agente guardado en el sistema o inicia sesión para acceder a las misiones tácticas y salas multijugador.</p>
       </div>
 
-      <!-- Selector de Pestañas: Iniciar Sesión / Registrar Agente / Confirmar Código -->
+      <!-- BANNER DE AGENTE ACTIVO DETECTADO (SI YA HAY UNO EN MEMORIA) -->
+      <div class="active-agent-banner cyber-panel" *ngIf="agentProfile">
+        <div class="active-agent-info">
+          <span class="agent-avatar-huge">{{ agentProfile.avatar }}</span>
+          <div class="agent-details">
+            <span class="agent-label">⚡ AGENTE ACTIVO EN SESIÓN</span>
+            <h3 class="agent-codename">{{ agentProfile.codename }}</h3>
+            <div class="agent-tags-row">
+              <span class="badge-role">{{ agentProfile.rank }}</span>
+              <span class="gold-text">⭐ {{ agentProfile.xpPoints }} PTS</span>
+              <span class="mail-tag" *ngIf="agentProfile.email">📧 {{ agentProfile.email }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="active-agent-actions">
+          <button class="cyber-btn primary enter-btn" (click)="enterMainInterface()">
+            🚀 INGRESAR A LAS OPERACIONES →
+          </button>
+          <button class="cyber-btn alert small-btn" (click)="logoutAgent()" title="Cerrar sesión de este agente">
+            ✕ Desconectar
+          </button>
+        </div>
+      </div>
+
+      <!-- Selector de Pestañas: Cargar Usuarios / Iniciar Sesión / Registrar / Demo / Confirmar -->
       <div class="auth-tabs-bar">
+        <button 
+          class="auth-tab-btn" 
+          [class.active]="authTab === 'LOAD'" 
+          (click)="switchAuthTab('LOAD')">
+          👥 Cargar Agente Registrado ({{ registeredUsers.length }})
+        </button>
         <button 
           class="auth-tab-btn" 
           [class.active]="authTab === 'LOGIN'" 
           (click)="switchAuthTab('LOGIN')">
-          🔑 Iniciar Sesión
+          🔑 Iniciar Sesión (Correo)
         </button>
         <button 
           class="auth-tab-btn" 
           [class.active]="authTab === 'REGISTER'" 
           (click)="switchAuthTab('REGISTER')">
           📝 Registrarse (Gmail)
+        </button>
+        <button 
+          class="auth-tab-btn" 
+          [class.active]="authTab === 'PRESETS'" 
+          (click)="switchAuthTab('PRESETS')">
+          ⚡ Agentes Demo
         </button>
         <button 
           class="auth-tab-btn" 
@@ -378,7 +414,70 @@
         </button>
       </div>
 
-      <!-- Formulario 1: Iniciar Sesión -->
+      <!-- ===================================================================== -->
+      <!-- PESTAÑA 0: CARGAR AGENTES REGISTRADOS EN POSTGRESQL -->
+      <!-- ===================================================================== -->
+      <div class="login-form-body user-loading-body" *ngIf="authTab === 'LOAD'">
+        <div class="user-search-header-row">
+          <div class="search-input-wrapper">
+            <input 
+              type="text" 
+              [(ngModel)]="userSearchTerm" 
+              placeholder="🔍 Filtrar por nombre de agente, correo o rango..." 
+              class="cyber-input user-search-input"
+            />
+          </div>
+          <button class="cyber-btn secondary small-btn refresh-btn" (click)="loadRegisteredUsers()" [disabled]="isLoadingUsers">
+            {{ isLoadingUsers ? '⌛' : '🔄' }} Actualizar
+          </button>
+        </div>
+
+        <div class="loading-users-box" *ngIf="isLoadingUsers">
+          <div class="reconnect-spinner"></div>
+          <span>Cargando lista de agentes desde PostgreSQL (escaperoom:5432)...</span>
+        </div>
+
+        <div class="user-agent-grid" *ngIf="!isLoadingUsers && filteredRegisteredUsers.length > 0">
+          <div 
+            *ngFor="let u of filteredRegisteredUsers" 
+            class="user-agent-card"
+            [class.selected]="agentProfile?.email === u.email || agentProfile?.codename === u.codename"
+            (click)="selectAndLoadUser(u, false)">
+            <div class="user-card-avatar">{{ u.avatar || '👨‍🚀' }}</div>
+            <div class="user-card-body">
+              <div class="user-card-name-row">
+                <strong class="user-card-codename">{{ u.codename }}</strong>
+                <span class="user-card-verified" *ngIf="u.isVerified" title="Cuenta Gmail Verificada">✓ Verificado</span>
+              </div>
+              <span class="user-card-rank">{{ u.rank || 'Especialista' }}</span>
+              <div class="user-card-stats">
+                <span class="xp-badge">⭐ {{ u.xpPoints || 100 }} XP</span>
+                <span class="wins-badge">🏆 {{ u.missionsWon || 0 }} vic</span>
+              </div>
+              <small class="user-card-email">{{ u.email }}</small>
+            </div>
+            <div class="user-card-actions">
+              <button class="cyber-btn success small-btn load-enter-btn" (click)="selectAndLoadUser(u, true); $event.stopPropagation()">
+                ⚡ Cargar y Entrar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-records" *ngIf="!isLoadingUsers && filteredRegisteredUsers.length === 0">
+          <p>👥 No se encontraron agentes registrados en la base de datos.</p>
+          <small>Crea una nueva cuenta de agente o utiliza un agente de prueba para comenzar.</small>
+          <div style="margin-top: 12px;">
+            <button class="cyber-btn primary small-btn" (click)="switchAuthTab('REGISTER')">
+              📝 Registrar Nuevo Agente
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- PESTAÑA 1: INICIAR SESIÓN CON CORREO -->
+      <!-- ===================================================================== -->
       <div class="login-form-body" *ngIf="authTab === 'LOGIN'">
         <div class="login-field-group">
           <label class="input-label">CORREO ELECTRÓNICO (GMAIL)</label>
@@ -404,9 +503,16 @@
         <button class="cyber-btn primary full-width" [disabled]="isAuthLoading" (click)="submitLoginWithEmail()">
           {{ isAuthLoading ? '⌛ Validando Credenciales...' : '🔓 Ingresar al Centro de Mando' }}
         </button>
+
+        <div class="auth-switch-prompt" style="margin-top: 12px; text-align: center;">
+          <span style="color: var(--text-dim); font-size: 0.85rem;">¿No tienes cuenta de agente aún? </span>
+          <button class="link-switch-btn" (click)="switchAuthTab('REGISTER')">Regístrate con tu Gmail →</button>
+        </div>
       </div>
 
-      <!-- Formulario 2: Crear Cuenta -->
+      <!-- ===================================================================== -->
+      <!-- PESTAÑA 2: CREAR CUENTA / REGISTRO CON GMAIL -->
+      <!-- ===================================================================== -->
       <div class="login-form-body" *ngIf="authTab === 'REGISTER'">
         <div class="login-field-group">
           <label class="input-label">CORREO ELECTRÓNICO (GMAIL)</label>
@@ -419,37 +525,51 @@
           <small class="field-hint">Te enviaremos un código de verificación de 6 dígitos.</small>
         </div>
 
-        <div class="login-field-group">
-          <label class="input-label">NOMBRE EN CLAVE DEL AGENTE</label>
-          <input 
-            type="text" 
-            [(ngModel)]="authCodename" 
-            placeholder="Ej: FoxLeader, Shadow, Alfa" 
-            class="cyber-input"
-          />
+        <div class="login-row-columns">
+          <div class="login-field-group">
+            <label class="input-label">NOMBRE EN CLAVE DEL AGENTE</label>
+            <input 
+              type="text" 
+              [(ngModel)]="authCodename" 
+              placeholder="Ej: FoxLeader, Shadow, Alfa" 
+              class="cyber-input"
+            />
+          </div>
+
+          <div class="login-field-group">
+            <label class="input-label">CONTRASEÑA</label>
+            <input 
+              type="password" 
+              [(ngModel)]="authPassword" 
+              placeholder="Mínimo 4 caracteres" 
+              class="cyber-input"
+            />
+          </div>
         </div>
 
-        <div class="login-field-group">
-          <label class="input-label">CONTRASEÑA</label>
-          <input 
-            type="password" 
-            [(ngModel)]="authPassword" 
-            placeholder="••••••••" 
-            class="cyber-input"
-          />
-        </div>
+        <div class="login-row-columns">
+          <div class="login-field-group">
+            <label class="input-label">RANGO TÁCTICO</label>
+            <select [(ngModel)]="authRank" class="cyber-select">
+              <option value="Recluta">🔰 Recluta</option>
+              <option value="Especialista">🎖️ Especialista</option>
+              <option value="Táctico">💠 Táctico</option>
+              <option value="Comandante">👑 Comandante</option>
+            </select>
+          </div>
 
-        <div class="login-field-group">
-          <label class="input-label">SELECCIONA TU AVATAR DE COMBATE</label>
-          <div class="avatar-picker-grid">
-            <button 
-              *ngFor="let av of avatars" 
-              type="button"
-              class="avatar-pick-btn" 
-              [class.selected]="authAvatar === av"
-              (click)="authAvatar = av">
-              {{ av }}
-            </button>
+          <div class="login-field-group">
+            <label class="input-label">AVATAR OPERATIVO</label>
+            <div class="avatar-mini-picker">
+              <button 
+                *ngFor="let av of avatars.slice(0, 5)" 
+                type="button"
+                class="avatar-pick-btn small" 
+                [class.selected]="authAvatar === av"
+                (click)="authAvatar = av">
+                {{ av }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -458,7 +578,53 @@
         </button>
       </div>
 
-      <!-- Formulario 3: Confirmar Código -->
+      <!-- ===================================================================== -->
+      <!-- PESTAÑA 3: AGENTES PREESTABLECIDOS / DEMO (JUAN, ROBERTO, CINTHIA, GERMAN) -->
+      <!-- ===================================================================== -->
+      <div class="login-form-body" *ngIf="authTab === 'PRESETS'">
+        <p class="tab-intro-text">Acceso rápido con identidades del equipo de operaciones tácticas:</p>
+        <div class="preset-agents-grid">
+          <button class="preset-agent-card" (click)="quickSelectPresetAgent('Agente Juan', '👨‍🚀', 'Comandante')">
+            <span class="preset-avatar">👨‍🚀</span>
+            <div class="preset-info">
+              <strong>Agente Juan</strong>
+              <span class="preset-rank">👑 Comandante • 1700 XP</span>
+            </div>
+            <span class="preset-arrow">→</span>
+          </button>
+
+          <button class="preset-agent-card" (click)="quickSelectPresetAgent('Agente Roberto', '🧙‍♂️', 'Táctico')">
+            <span class="preset-avatar">🧙‍♂️</span>
+            <div class="preset-info">
+              <strong>Agente Roberto</strong>
+              <span class="preset-rank">💠 Táctico • 950 XP</span>
+            </div>
+            <span class="preset-arrow">→</span>
+          </button>
+
+          <button class="preset-agent-card" (click)="quickSelectPresetAgent('Agente Cinthia', '👩‍🚀', 'Especialista')">
+            <span class="preset-avatar">👩‍🚀</span>
+            <div class="preset-info">
+              <strong>Agente Cinthia</strong>
+              <span class="preset-rank">🎖️ Especialista • 800 XP</span>
+            </div>
+            <span class="preset-arrow">→</span>
+          </button>
+
+          <button class="preset-agent-card" (click)="quickSelectPresetAgent('Agente German', '🤖', 'Recluta')">
+            <span class="preset-avatar">🤖</span>
+            <div class="preset-info">
+              <strong>Agente German</strong>
+              <span class="preset-rank">🔰 Recluta • 500 XP</span>
+            </div>
+            <span class="preset-arrow">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ===================================================================== -->
+      <!-- PESTAÑA 4: CONFIRMAR CÓDIGO DE 6 DÍGITOS -->
+      <!-- ===================================================================== -->
       <div class="login-form-body" *ngIf="authTab === 'VERIFY'">
         <div class="verify-instruction-box">
           <span class="verify-icon">📬</span>
@@ -501,7 +667,7 @@
     </div>
   </main>
 
-  <header class="top-nav" *ngIf="agentProfile || roomState">
+  <header class="top-nav" *ngIf="roomState || currentView !== 'LOGIN'">
     <div class="brand" (click)="navigateTo('LANDING')" style="cursor: pointer;">
       <span class="brand-logo">{{ roomState?.scenario?.icon || '🔐' }}</span>
       <div>
@@ -527,7 +693,7 @@
     <div class="hud-status-bar">
 
       <!-- PERFIL DE AGENTE ACTIVO O BOTÓN DE LOGIN -->
-      <div class="agent-profile-pill" *ngIf="agentProfile; else guestBadge" (click)="openLoginModal()" title="Ver o editar perfil de agente">
+      <div class="agent-profile-pill" *ngIf="agentProfile; else guestBadge" (click)="navigateTo('LOGIN')" title="Cambiar o Cargar Perfil de Agente">
         <span class="agent-avatar">{{ agentProfile.avatar }}</span>
         <div class="agent-info-column">
           <div class="agent-name-row">
@@ -598,7 +764,7 @@
   <!-- ========================================================================= -->
   <!-- 0. PANTALLA PRINCIPAL: LANDING PAGE PÚBLICA -->
   <!-- ========================================================================= -->
-  <main class="landing-page-container" *ngIf="currentView === 'LANDING' && !roomState && agentProfile">
+  <main class="landing-page-container" *ngIf="currentView === 'LANDING' && !roomState">
     
     <!-- HERO SECTION -->
     <section class="landing-hero-section">
@@ -776,7 +942,7 @@
   <!-- ========================================================================= -->
   <!-- 1. PANTALLA DE SALA DE ESPERA / CREAR O UNIRSE (LOBBY VIEW SIN SALA) -->
   <!-- ========================================================================= -->
-  <main class="welcome-screen" *ngIf="currentView === 'LOBBY' && !roomState && agentProfile">
+  <main class="welcome-screen" *ngIf="currentView === 'LOBBY' && !roomState">
     <div class="cyber-panel hero-card">
       
       <div class="back-to-landing-bar">

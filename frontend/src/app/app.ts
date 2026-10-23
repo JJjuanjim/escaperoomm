@@ -16,12 +16,15 @@ import { EscapeRoomState, Player, ScenarioInfo, RejoinRequest, AgentProfile, Act
 })
 export class App implements OnInit, OnDestroy {
   // Navegación principal de pantallas
-  currentView: 'LANDING' | 'LOBBY' = 'LANDING';
+  currentView: 'LOGIN' | 'LANDING' | 'LOBBY' = 'LOGIN';
 
   // Perfil del Agente y Autenticación con Correo (Gmail)
   agentProfile: AgentProfile | null = null;
   showLoginModal: boolean = false;
-  authTab: 'LOGIN' | 'REGISTER' | 'VERIFY' = 'LOGIN';
+  authTab: 'LOAD' | 'LOGIN' | 'REGISTER' | 'VERIFY' | 'PRESETS' = 'LOAD';
+  registeredUsers: any[] = [];
+  isLoadingUsers: boolean = false;
+  userSearchTerm: string = '';
   authEmail: string = '';
   authPassword: string = '';
   authCodename: string = '';
@@ -121,6 +124,7 @@ export class App implements OnInit, OnDestroy {
     this.isSoundEnabled = this.audioService.isSoundEnabled();
 
     // 1. Cargar perfil guardado del Agente (Login)
+    this.loadRegisteredUsers();
     this.loadSavedAgentProfile();
 
     // Comprobar si se ingresó mediante enlace de activación del correo (?verifyEmail=...&verifyCode=...)
@@ -329,10 +333,12 @@ export class App implements OnInit, OnDestroy {
   }
 
   // --- Navegación de Vistas ---
-  navigateTo(view: 'LANDING' | 'LOBBY'): void {
+  navigateTo(view: 'LOGIN' | 'LANDING' | 'LOBBY'): void {
     this.currentView = view;
     this.audioService.playKeypadBeep();
-    if (view === 'LANDING') {
+    if (view === 'LOGIN') {
+      this.loadRegisteredUsers();
+    } else if (view === 'LANDING') {
       this.preloadLeaderboard();
     }
     this.cdr.markForCheck();
@@ -346,16 +352,9 @@ export class App implements OnInit, OnDestroy {
 
   // --- Sistema de Autenticación / Login de Agente con Gmail ---
   openLoginModal(): void {
-    this.showLoginModal = true;
-    this.authTab = this.agentProfile?.email ? 'LOGIN' : 'REGISTER';
-    this.authEmail = this.agentProfile?.email || '';
-    this.authCodename = this.agentProfile?.codename || this.playerName;
-    this.authAvatar = this.agentProfile?.avatar || this.selectedAvatar;
-    this.authRank = (this.agentProfile?.rank as any) || 'Especialista';
-    this.authPassword = '';
-    this.authVerificationCode = '';
-    this.authDevCode = null;
-    this.authMessage = null;
+    this.currentView = 'LOGIN';
+    this.authTab = 'LOAD';
+    this.loadRegisteredUsers();
     this.cdr.markForCheck();
   }
 
@@ -364,10 +363,125 @@ export class App implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  switchAuthTab(tab: 'LOGIN' | 'REGISTER' | 'VERIFY'): void {
+  switchAuthTab(tab: 'LOAD' | 'LOGIN' | 'REGISTER' | 'VERIFY' | 'PRESETS'): void {
     this.authTab = tab;
     this.authMessage = null;
+    if (tab === 'LOAD') {
+      this.loadRegisteredUsers();
+    }
     this.cdr.markForCheck();
+  }
+
+  
+  // --- Sistema de Carga de Usuarios Registrados ---
+  get filteredRegisteredUsers(): any[] {
+    if (!this.userSearchTerm.trim()) return this.registeredUsers;
+    const term = this.userSearchTerm.toLowerCase().trim();
+    return this.registeredUsers.filter(u =>
+      (u.codename && u.codename.toLowerCase().includes(term)) ||
+      (u.email && u.email.toLowerCase().includes(term)) ||
+      (u.rank && u.rank.toLowerCase().includes(term))
+    );
+  }
+
+  async loadRegisteredUsers(): Promise<void> {
+    this.isLoadingUsers = true;
+    try {
+      const list = await this.socketService.fetchRegisteredUsers();
+      this.registeredUsers = Array.isArray(list) ? list : [];
+    } catch (err) {
+      console.warn('Error al cargar agentes registrados:', err);
+      this.registeredUsers = [];
+    } finally {
+      this.isLoadingUsers = false;
+      this.cdr.markForCheck();
+    }
+  }
+
+  async selectAndLoadUser(user: any, autoEnter: boolean = true): Promise<void> {
+    try {
+      this.isAuthLoading = true;
+      const res = await this.socketService.loadAgentById(user.id);
+      this.isAuthLoading = false;
+      const u = (res && res.success && res.user) ? res.user : user;
+
+      this.agentProfile = {
+        email: u.email,
+        isVerified: u.isVerified !== false,
+        codename: u.codename,
+        avatar: u.avatar || '👨‍🚀',
+        rank: u.rank || 'Especialista',
+        pin: '0000',
+        missionsPlayed: u.missionsPlayed || 0,
+        missionsWon: u.missionsWon || 0,
+        xpPoints: (u.xpPoints || 100) + this.challengesBonusXp,
+        badges: ['Agente de Campo', 'PostgreSQL DB'],
+        lastLogin: new Date().toISOString()
+      };
+      this.playerName = u.codename;
+      this.selectedAvatar = u.avatar || '👨‍🚀';
+      this.saveAgentProfileToDisk();
+      this.audioService.playSuccessChime();
+      this.showSuccess(`¡Agente ${u.codename} cargado exitosamente!`);
+      if (autoEnter) {
+        this.navigateTo('LANDING');
+      }
+    } catch {
+      this.isAuthLoading = false;
+      this.agentProfile = {
+        email: user.email,
+        isVerified: user.isVerified !== false,
+        codename: user.codename,
+        avatar: user.avatar || '👨‍🚀',
+        rank: user.rank || 'Especialista',
+        pin: '0000',
+        missionsPlayed: user.missionsPlayed || 0,
+        missionsWon: user.missionsWon || 0,
+        xpPoints: (user.xpPoints || 100) + this.challengesBonusXp,
+        badges: ['Agente de Campo', 'PostgreSQL DB'],
+        lastLogin: new Date().toISOString()
+      };
+      this.playerName = user.codename;
+      this.selectedAvatar = user.avatar || '👨‍🚀';
+      this.saveAgentProfileToDisk();
+      this.audioService.playSuccessChime();
+      this.showSuccess(`Agente ${user.codename} seleccionado.`);
+      if (autoEnter) {
+        this.navigateTo('LANDING');
+      }
+    }
+    this.cdr.markForCheck();
+  }
+
+  quickSelectPresetAgent(name: string, avatar: string, rank: 'Recluta' | 'Especialista' | 'Táctico' | 'Comandante'): void {
+    const profile: AgentProfile = {
+      codename: name,
+      avatar: avatar,
+      rank: rank,
+      pin: '0000',
+      missionsPlayed: 1,
+      missionsWon: 1,
+      xpPoints: 500 + this.challengesBonusXp,
+      badges: ['Equipo Operativo', 'Acceso Rápido'],
+      lastLogin: new Date().toISOString(),
+      isVerified: true
+    };
+    this.agentProfile = profile;
+    this.playerName = name;
+    this.selectedAvatar = avatar;
+    this.saveAgentProfileToDisk();
+    this.audioService.playSuccessChime();
+    this.showSuccess(`¡Identidad operativa concedida para ${name}! Bienvenido al sistema.`);
+    this.navigateTo('LANDING');
+    this.cdr.markForCheck();
+  }
+
+  enterMainInterface(): void {
+    if (!this.agentProfile) {
+      this.quickGuestLogin();
+    } else {
+      this.navigateTo('LANDING');
+    }
   }
 
   async submitRegisterWithEmail(): Promise<void> {
@@ -445,6 +559,7 @@ export class App implements OnInit, OnDestroy {
         this.closeLoginModal();
         this.audioService.playSuccessChime();
         this.showSuccess(`¡Agente ${profile.codename} autenticado y verificado con éxito!`);
+        this.navigateTo('LANDING');
       } else {
         this.showError(res.message || 'Código incorrecto o expirado');
       }
@@ -498,6 +613,7 @@ export class App implements OnInit, OnDestroy {
         this.closeLoginModal();
         this.audioService.playSuccessChime();
         this.showSuccess(`¡Bienvenido de vuelta, ${profile.rank} ${profile.codename}!`);
+          this.navigateTo('LANDING');
       } else {
         this.showError(res.message || 'Credenciales incorrectas');
       }
@@ -872,7 +988,10 @@ export class App implements OnInit, OnDestroy {
     this.agentProfile = null;
     this.playerName = 'Agente_Alfa';
     this.selectedAvatar = '👨‍🚀';
-    this.showSuccess('Sesión cerrada correctamente');
+    this.currentView = 'LOGIN';
+    this.authTab = 'LOAD';
+    this.loadRegisteredUsers();
+    this.showSuccess('Sesión cerrada. Selecciona o carga un usuario para continuar.');
     this.cdr.markForCheck();
   }
 

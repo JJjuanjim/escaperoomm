@@ -40,6 +40,19 @@ export class AuthController {
     return this.authService.resendCode(dto.email, origin);
   }
 
+  @Get('users')
+  @ApiOperation({ summary: 'Listar todos los agentes registrados para carga rápida en pantalla de login' })
+  async getAllUsers() {
+    return this.authService.getAllUsers();
+  }
+
+  @Post('load-agent')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cargar perfil de agente registrado por ID' })
+  async loadAgent(@Body('id') id: number) {
+    return this.authService.loadAgent(id);
+  }
+
   @Get('profile')
   @ApiOperation({ summary: 'Obtener perfil del agente autenticado por email' })
   async getProfile(@Query('email') email: string) {

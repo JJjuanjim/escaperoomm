@@ -204,6 +204,25 @@ export class AuthService {
     return this.sanitizeUser(updated);
   }
 
+  async getAllUsers() {
+    const users = await this.prisma.user.findMany({
+      orderBy: { xpPoints: 'desc' },
+    });
+    return users.map(u => this.sanitizeUser(u));
+  }
+
+  async loadAgent(id: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: Number(id) } });
+    if (!user) {
+      throw new NotFoundException('Agente no encontrado en la base de datos');
+    }
+    return {
+      success: true,
+      message: `Perfil de agente ${user.codename} cargado con éxito`,
+      user: this.sanitizeUser(user),
+    };
+  }
+
   private sanitizeUser(user: any) {
     const { password, verificationCode, verificationExpires, ...safe } = user;
     return safe;

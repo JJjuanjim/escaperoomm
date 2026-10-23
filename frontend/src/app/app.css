@@ -4242,3 +4242,320 @@
   color: #ff3366;
   font-weight: 800;
 }
+
+
+/* ==========================================================================
+   ESTILOS AVANZADOS DEL PORTAL DE LOGIN Y CARGA DE USUARIOS (POSTGRESQL)
+   ========================================================================== */
+.login-gate-card-wide {
+  max-width: 860px !important;
+  transition: all 0.3s ease;
+}
+
+.active-agent-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, rgba(0, 243, 255, 0.12), rgba(16, 185, 129, 0.12));
+  border: 1px solid var(--neon-cyan);
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 25px rgba(0, 243, 255, 0.2);
+  margin-bottom: 8px;
+}
+
+.active-agent-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.agent-avatar-huge {
+  font-size: 3rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 10px rgba(0, 243, 255, 0.4));
+}
+
+.agent-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--neon-cyan);
+}
+
+.agent-codename {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #fff;
+  margin: 0;
+}
+
+.agent-tags-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+}
+
+.mail-tag {
+  color: var(--text-dim);
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+.active-agent-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.active-agent-actions .enter-btn {
+  font-size: 0.95rem;
+  font-weight: 800;
+  padding: 12px 18px;
+  letter-spacing: 0.05em;
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.35);
+}
+
+/* Barra de búsqueda de usuarios */
+.user-search-header-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.search-input-wrapper {
+  flex: 1;
+}
+
+.user-search-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-sm);
+  color: #fff;
+}
+
+.refresh-btn {
+  white-space: nowrap;
+  padding: 10px 16px;
+}
+
+/* Spinner de carga de usuarios */
+.loading-users-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 30px;
+  color: var(--neon-cyan);
+  font-size: 0.9rem;
+}
+
+/* Grid de usuarios registrados */
+.user-agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 14px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+.user-agent-grid::-webkit-scrollbar {
+  width: 6px;
+}
+.user-agent-grid::-webkit-scrollbar-thumb {
+  background: rgba(0, 243, 255, 0.3);
+  border-radius: 4px;
+}
+
+.user-agent-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.user-agent-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--neon-cyan);
+  background: rgba(0, 243, 255, 0.08);
+  box-shadow: 0 6px 20px rgba(0, 243, 255, 0.15);
+}
+
+.user-agent-card.selected {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
+}
+
+.user-card-avatar {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.user-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-card-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.user-card-codename {
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.user-card-verified {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.user-card-rank {
+  font-size: 0.78rem;
+  color: var(--neon-cyan);
+  font-weight: 600;
+}
+
+.user-card-stats {
+  display: flex;
+  gap: 8px;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+.xp-badge {
+  color: #fbbf24;
+  font-weight: 700;
+}
+
+.wins-badge {
+  color: #94a3b8;
+}
+
+.user-card-email {
+  color: #64748b;
+  font-family: monospace;
+  font-size: 0.7rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-card-actions {
+  margin-top: auto;
+  padding-top: 6px;
+}
+
+.load-enter-btn {
+  width: 100%;
+  font-size: 0.8rem;
+  padding: 8px;
+  font-weight: 700;
+}
+
+/* Agentes Preestablecidos / Demo */
+.tab-intro-text {
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+
+.preset-agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.preset-agent-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.25s ease;
+}
+
+.preset-agent-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--neon-cyan);
+  background: rgba(0, 243, 255, 0.1);
+  box-shadow: 0 4px 18px rgba(0, 243, 255, 0.2);
+}
+
+.preset-avatar {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.preset-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.preset-rank {
+  font-size: 0.72rem;
+  color: var(--neon-cyan);
+}
+
+.preset-arrow {
+  color: var(--text-dim);
+  font-size: 1.1rem;
+}
+
+.switch-user-nav-btn {
+  border-color: rgba(0, 243, 255, 0.4) !important;
+  color: var(--neon-cyan) !important;
+}
+.switch-user-nav-btn:hover {
+  background: rgba(0, 243, 255, 0.15) !important;
+}
+
+@media (max-width: 680px) {
+  .active-agent-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .active-agent-actions {
+    width: 100%;
+  }
+  .user-agent-grid {
+    grid-template-columns: 1fr;
+  }
+}
